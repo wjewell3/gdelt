@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -64,317 +65,302 @@
   </div>
 
   <script>
+    const sheets = {
+      toneData: 'https://docs.google.com/spreadsheets/d/18zMteRtj6HsyJ4CNfmr3HUCUIAFZxsZTcv-pRv3_P58/edit?usp=drive_link/edit?gid=0#gid=0',
+      themesData: 'https://docs.google.com/spreadsheets/d/1FUntzgIzuG5eMKNzRCH-C8-XOJwYJ_lHnEcmsBAPMVM/edit?usp=drive_link/edit?gid=0#gid=0',
+      documentData: 'https://docs.google.com/spreadsheets/d/18zMteRtj6HsyJ4CNfmr3HUCUIAFZxsZTcv-pRv3_P58/edit?usp=drive_link/edit?gid=0#gid=0',
+      personsData: 'https://docs.google.com/spreadsheets/d/1z7A4Me-8ey-AbuVMSdqQoD1vTLwXShW55KmkhvcEHsk/edit?usp=drive_link/edit?gid=0#gid=0',
+      countryData: 'https://docs.google.com/spreadsheets/d/1IdW4Ibwl3DT3R5luR-4zT-JzmD8sUg9Wdvq7Gwtkr5Y/edit?usp=drive_link/edit?gid=0#gid=0',
+      orgsData: 'https://docs.google.com/spreadsheets/d/1xLhgYyTyITsspbFSai81SrsRSNq8yV9ZEvlnBHtN4qc/edit?usp=drive_link/edit?gid=0#gid=0'
+    };
+
     async function fetchSheetData(sheetUrl) {
-      const sheetId = sheetUrl.split('/')[5];
-      const sheetName = sheetUrl.split('gid=')[1];
-      const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
-      const response = await fetch(url);
-      const text = await response.text();
-      const match = text.match(/\{.*\}/s);
-      if (match) {
-        return JSON.parse(match[0]);
+      try {
+        const sheetId = sheetUrl.split('/')[5];
+        const sheetName = sheetUrl.split('gid=')[1];
+        const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
+        const response = await fetch(url);
+        const text = await response.text();
+        const match = text.match(/\{.*\}/s);
+        if (match) {
+          return JSON.parse(match[0]);
+        }
+        throw new Error('Failed to parse JSON data');
+      } catch (error) {
+        console.error('Failed to fetch or parse data:', error);
+        return null;
       }
-      throw new Error('Failed to parse JSON data');
     }
 
     function processToneData(data) {
+      if (!data) return { toneValues: [], avgTone: 0, gkgIDs: [] };
       const rows = data.table.rows;
       const toneValues = rows.map(row => parseFloat(row.c[7].v)); // Adjust index if needed
       const avgTone = toneValues.reduce((a, b) => a + b, 0) / toneValues.length;
-      return { toneValues, avgTone };
+      return { toneValues, avgTone, gkgIDs: rows.map(row => row.c[0].v) };
     }
 
     function processThemesData(data) {
+      if (!data) return { labels: [], counts: [], themes: {} };
       const rows = data.table.rows;
       const themes = {};
       rows.forEach(row => {
         const theme = row.c[1].v;
-        const count = parseFloat(row.c[0].v);
+        const count = 0
+        const gkgID = row.c[0].v;
         if (themes[theme]) {
-          themes[theme] += count;
+          themes[theme].count += 1;
+          themes[theme].gkgIDs.push(gkgID);
         } else {
-          themes[theme] = count;
+          themes[theme] = { count, gkgIDs: [gkgID] };
         }
       });
-      const labels = Object.keys(themes).sort((a, b) => themes[b] - themes[a]);
-      const counts = labels.map(label => themes[label]);
-      return { labels, counts };
+      const labels = Object.keys(themes).sort((a, b) => themes[b].count - themes[a].count).slice(0, 20);
+      const counts = labels.map(label => themes[label].count);
+      return { labels, counts, themes };
     }
 
     function processPersonsData(data) {
+      if (!data) return { labels: [], counts: [], persons: {} };
       const rows = data.table.rows;
       const persons = {};
       rows.forEach(row => {
         const person = row.c[1].v;
-        const count = parseFloat(row.c[0].v);
+        const count = 0;
+        const gkgID = row.c[0].v;
         if (persons[person]) {
-          persons[person] += count;
+          persons[person].count += 1;
+          persons[person].gkgIDs.push(gkgID);
         } else {
-          persons[person] = count;
+          persons[person] = { count, gkgIDs: [gkgID] };
         }
       });
-      const labels = Object.keys(persons).sort((a, b) => persons[b] - persons[a]);
-      const counts = labels.map(label => persons[label]);
-      return { labels, counts };
+      const labels = Object.keys(persons).sort((a, b) => persons[b].count - persons[a].count).slice(0, 20);
+      const counts = labels.map(label => persons[label].count);
+      return { labels, counts, persons };
     }
 
     function processOrgsData(data) {
+      if (!data) return { labels: [], counts: [], orgs: {} };
       const rows = data.table.rows;
       const orgs = {};
       rows.forEach(row => {
         const org = row.c[1].v;
-        const count = parseFloat(row.c[0].v);
+        const count = 0;
+        const gkgID = row.c[0].v;
         if (orgs[org]) {
-          orgs[org] += count;
+          orgs[org].count += 1;
+          orgs[org].gkgIDs.push(gkgID);
         } else {
-          orgs[org] = count;
+          orgs[org] = { count, gkgIDs: [gkgID] };
         }
       });
-      const labels = Object.keys(orgs).sort((a, b) => orgs[b] - orgs[a]);
-      const counts = labels.map(label => orgs[label]);
-      return { labels, counts };
+      const labels = Object.keys(orgs).sort((a, b) => orgs[b].count - orgs[a].count).slice(0, 20);
+      const counts = labels.map(label => orgs[label].count);
+      return { labels, counts, orgs };
     }
 
     function processDocsData(data) {
+      if (!data) return [];
       const rows = data.table.rows;
-      const docs = rows.map(row => ({
+      return rows.map(row => ({
         id: row.c[4].v,
-        image: row.c[5].v
-      }));
-      return docs.sort((a, b) => b.id.localeCompare(a.id)).slice(0, 20);
+        image: row.c[5].v,
+        gkgID: row.c[0].v
+      })).sort((a, b) => b.id.localeCompare(a.id)).slice(0, 10);
     }
 
     function processLocationsData(data) {
+      if (!data) return [];
       const rows = data.table.rows;
-      const locations = rows.map(row => [
-        row.c[0].v,
-        parseFloat(row.c[1].v),
-        parseFloat(row.c[2].v),
-        parseFloat(row.c[3].v)
-      ]);
-      return locations;
+      return rows.map(row => ({
+        lat: parseFloat(row.c[7].v),
+        lng: parseFloat(row.c[8].v),
+        count: parseFloat(row.c[0].v),
+        gkgID: row.c[0].v
+      }));
     }
 
-    async function initToneHistogram() {
-      const data = await fetchSheetData('https://docs.google.com/spreadsheets/d/18zMteRtj6HsyJ4CNfmr3HUCUIAFZxsZTcv-pRv3_P58/edit?usp=drive_link/edit?gid=0');
-      const { toneValues, avgTone } = processToneData(data);
-      const ctx = document.getElementById('toneHistogram').getContext('2d');
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: Array.from({ length: 20 }, (_, i) => i * (Math.max(...toneValues) / 20)),
-          datasets: [{
-            label: 'Overall Tone',
-            data: toneValues,
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderColor: 'rgba(75, 192, 192, 1)',
-          }]
-        },
-        options: {
-          responsive: true,
-          indexAxis: 'x',
-          scales: {
-            x: {
-              title: {
-                display: true,
-                text: 'Overall Tone'
-              }
-            },
-            y: {
-              title: {
-                display: true,
-                text: 'Frequency'
-              },
-              beginAtZero: true
-            }
+    function renderCharts(data) {
+      if (data.tone.toneValues.length === 0) {
+        document.getElementById('toneHistogram').style.display = 'none';
+      } else {
+        const toneCtx = document.getElementById('toneHistogram').getContext('2d');
+        const toneChart = new Chart(toneCtx, {
+          type: 'bar',
+          data: {
+            labels: Array.from({ length: data.tone.toneValues.length }, (_, i) => i + 1),
+            datasets: [{
+              label: 'Tone Value',
+              data: data.tone.toneValues,
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              borderColor: 'rgba(75, 192, 192, 1)',
+              borderWidth: 1
+            }]
           },
-          plugins: {
-            title: {
-              display: true,
-              text: 'Tone Histogram'
+          options: {
+            scales: {
+              x: { beginAtZero: true },
+              y: { beginAtZero: true }
             }
           }
-        }
-      });
-      document.getElementById('avgOverallTone').innerText = `Average Overall Tone: ${avgTone.toFixed(2)}`;
-    }
+        });
+        document.getElementById('avgOverallTone').textContent = `Average Overall Tone: ${data.tone.avgTone.toFixed(2)}`;
+      }
 
-    async function initThemeBarChart() {
-      const data = await fetchSheetData('https://docs.google.com/spreadsheets/d/1FUntzgIzuG5eMKNzRCH-C8-XOJwYJ_lHnEcmsBAPMVM/edit?usp=drive_link/edit?gid=0');
-      const { labels, counts } = processThemesData(data);
-      const ctx = document.getElementById('themeBarChart').getContext('2d');
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Distinct Count of GKG Record IDs',
-            data: counts,
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderColor: 'rgba(75, 192, 192, 1)',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          indexAxis: 'y',
-          plugins: {
-            title: {
-              display: true,
-              text: 'Themes Average Record Count'
-            }
+      if (data.themes.labels.length === 0) {
+        document.getElementById('themeBarChart').style.display = 'none';
+      } else {
+        const themeCtx = document.getElementById('themeBarChart').getContext('2d');
+        const themeChart = new Chart(themeCtx, {
+          type: 'bar',
+          data: {
+            labels: data.themes.labels,
+            datasets: [{
+              label: 'Average Record Count',
+              data: data.themes.counts,
+              backgroundColor: 'rgba(153, 102, 255, 0.2)',
+              borderColor: 'rgba(153, 102, 255, 1)',
+              borderWidth: 1
+            }]
           },
-          scales: {
-            x: {
-              title: {
-                display: true,
-                text: 'Distinct Count of GKG Record IDs'
-              },
-              beginAtZero: true
-            },
-            y: {
-              title: {
-                display: true,
-                text: 'Theme'
-              }
+          options: {
+            scales: {
+              x: { beginAtZero: true },
+              y: { beginAtZero: true }
             }
           }
-        }
-      });
-    }
+        });
+      }
 
-    async function initDocThumbnails() {
-      const data = await fetchSheetData('https://docs.google.com/spreadsheets/d/18zMteRtj6HsyJ4CNfmr3HUCUIAFZxsZTcv-pRv3_P58/edit?usp=drive_link/edit?gid=0');
-      const docs = processDocsData(data);
-      const container = document.getElementById('docThumbnails');
-      docs.forEach(doc => {
-        const div = document.createElement('div');
-        div.innerHTML = `
-          <img src="${doc.image}" alt="${doc.id}" />
-          <p>${doc.id}</p>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    async function initPersonsBarChart() {
-      const data = await fetchSheetData('https://docs.google.com/spreadsheets/d/1z7A4Me-8ey-AbuVMSdqQoD1vTLwXShW55KmkhvcEHsk/edit?usp=drive_link/edit?gid=0');
-      const { labels, counts } = processPersonsData(data);
-      const ctx = document.getElementById('personsBarChart').getContext('2d');
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Distinct Count of GKG Record IDs',
-            data: counts,
-            backgroundColor: 'rgba(153, 102, 255, 0.2)',
-            borderColor: 'rgba(153, 102, 255, 1)',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          indexAxis: 'y',
-          plugins: {
-            title: {
-              display: true,
-              text: 'Persons Average Record Count'
-            }
+      if (data.persons.labels.length === 0) {
+        document.getElementById('personsBarChart').style.display = 'none';
+      } else {
+        const personsCtx = document.getElementById('personsBarChart').getContext('2d');
+        const personsChart = new Chart(personsCtx, {
+          type: 'bar',
+          data: {
+            labels: data.persons.labels,
+            datasets: [{
+              label: 'Average Record Count',
+              data: data.persons.counts,
+              backgroundColor: 'rgba(255, 159, 64, 0.2)',
+              borderColor: 'rgba(255, 159, 64, 1)',
+              borderWidth: 1
+            }]
           },
-          scales: {
-            x: {
-              title: {
-                display: true,
-                text: 'Distinct Count of GKG Record IDs'
-              },
-              beginAtZero: true
-            },
-            y: {
-              title: {
-                display: true,
-                text: 'Person'
-              }
+          options: {
+            scales: {
+              x: { beginAtZero: true },
+              y: { beginAtZero: true }
             }
           }
-        }
-      });
-    }
+        });
+      }
 
-    async function initCountryMap() {
-      const data = await fetchSheetData('https://docs.google.com/spreadsheets/d/1IdW4Ibwl3DT3R5luR-4zT-JzmD8sUg9Wdvq7Gwtkr5Y/edit?usp=drive_link/edit?gid=0');
-      const locations = processLocationsData(data);
-
-      google.charts.load('current', { packages: ['geochart'] });
-      google.charts.setOnLoadCallback(() => {
-        const dataTable = new google.visualization.DataTable();
-        dataTable.addColumn('string', 'Country');
-        dataTable.addColumn('number', 'Latitude');
-        dataTable.addColumn('number', 'Longitude');
-        dataTable.addColumn('number', 'Count');
-        dataTable.addRows(locations);
-
-        const options = {
-          title: 'Country Map with Bubbles',
-          colorAxis: { colors: ['#e5f5f9', '#2ca25f'] },
-          sizeAxis: { minSize: 5, maxSize: 100 }
-        };
-
-        const chart = new google.visualization.GeoChart(document.getElementById('countryMap'));
-        chart.draw(dataTable, options);
-      });
-    }
-
-    async function initOrgsBarChart() {
-      const data = await fetchSheetData('https://docs.google.com/spreadsheets/d/1xLhgYyTyITsspbFSai81SrsRSNq8yV9ZEvlnBHtN4qc/edit?usp=drive_link/edit?gid=0');
-      const { labels, counts } = processOrgsData(data);
-      const ctx = document.getElementById('orgsBarChart').getContext('2d');
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Distinct Count of GKG Record IDs',
-            data: counts,
-            backgroundColor: 'rgba(255, 159, 64, 0.2)',
-            borderColor: 'rgba(255, 159, 64, 1)',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          indexAxis: 'y',
-          plugins: {
-            title: {
-              display: true,
-              text: 'Organizations Average Record Count'
-            }
+      if (data.orgs.labels.length === 0) {
+        document.getElementById('orgsBarChart').style.display = 'none';
+      } else {
+        const orgsCtx = document.getElementById('orgsBarChart').getContext('2d');
+        const orgsChart = new Chart(orgsCtx, {
+          type: 'bar',
+          data: {
+            labels: data.orgs.labels,
+            datasets: [{
+              label: 'Average Record Count',
+              data: data.orgs.counts,
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              borderColor: 'rgba(255, 99, 132, 1)',
+              borderWidth: 1
+            }]
           },
-          scales: {
-            x: {
-              title: {
-                display: true,
-                text: 'Distinct Count of GKG Record IDs'
-              },
-              beginAtZero: true
-            },
-            y: {
-              title: {
-                display: true,
-                text: 'Organization'
-              }
+          options: {
+            scales: {
+              x: { beginAtZero: true },
+              y: { beginAtZero: true }
             }
           }
-        }
-      });
+        });
+      }
     }
 
-    initToneHistogram();
-    initThemeBarChart();
-    initDocThumbnails();
-    initPersonsBarChart();
-    initCountryMap();
-    initOrgsBarChart();
+    function renderDocThumbnails(docs) {
+      if (docs.length === 0) {
+        document.getElementById('docThumbnails').style.display = 'none';
+      } else {
+        const thumbnailsContainer = document.getElementById('docThumbnails');
+        docs.forEach(doc => {
+          const thumbnailDiv = document.createElement('div');
+          thumbnailDiv.innerHTML = `
+            <img src="${doc.image}" alt="${doc.id}">
+            <p>${doc.id}</p>
+          `;
+          thumbnailsContainer.appendChild(thumbnailDiv);
+        });
+      }
+    }
+
+    function renderMap(locations) {
+      if (locations.length === 0) {
+        document.getElementById('countryMap').style.display = 'none';
+      } else {
+        const map = L.map('countryMap').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        locations.forEach(location => {
+          L.circle([location.lat, location.lng], {
+            color: 'blue',
+            fillColor: '#30f',
+            fillOpacity: 0.5,
+            radius: location.count * 1000
+          }).addTo(map);
+        });
+      }
+    }
+
+    async function initializeDashboard() {
+      try {
+        const dataPromises = Object.entries(sheets).map(async ([key, url]) => {
+          const data = await fetchSheetData(url);
+          switch (key) {
+            case 'toneData':
+              return { key, data: processToneData(data) };
+            case 'themesData':
+              return { key, data: processThemesData(data) };
+            case 'documentData':
+              return { key, data: processDocsData(data) };
+            case 'personsData':
+              return { key, data: processPersonsData(data) };
+            case 'countryData':
+              return { key, data: processLocationsData(data) };
+            case 'orgsData':
+              return { key, data: processOrgsData(data) };
+          }
+        });
+
+        const results = await Promise.all(dataPromises);
+
+        const dashboardData = {};
+        results.forEach(result => {
+          dashboardData[result.key] = result.data;
+        });
+
+        renderCharts({
+          tone: dashboardData.toneData,
+          themes: dashboardData.themesData,
+          persons: dashboardData.personsData,
+          orgs: dashboardData.orgsData
+        });
+
+        renderDocThumbnails(dashboardData.documentData);
+        renderMap(dashboardData.countryData);
+      } catch (error) {
+        console.error('Error initializing dashboard:', error);
+      }
+    }
+
+    initializeDashboard();
   </script>
 </body>
 </html>
