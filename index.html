@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+    }
+    .chart-container {
+      margin-bottom: 20px;
+    }
+    #docThumbnails {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    #docThumbnails div {
+      margin: 10px;
+      text-align: center;
+    }
+    img {
+      max-width: 100px;
+      max-height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Dashboard</h1>
+
+  <div class="chart-container">
+    <h2>Tone Histogram</h2>
+    <canvas id="toneHistogram"></canvas>
+    <div id="avgOverallTone"></div>
+  </div>
+
+  <div class="chart-container">
+    <h2>Themes Average Record Count</h2>
+    <canvas id="themeBarChart"></canvas>
+  </div>
+
+  <div class="chart-container">
+    <h2>Top 20 Document IDs with Thumbnails</h2>
+    <div id="docThumbnails"></div>
+  </div>
+
+  <div class="chart-container">
+    <h2>Persons Average Record Count</h2>
+    <canvas id="personsBarChart"></canvas>
+  </div>
+
+  <div class="chart-container">
+    <h2>Country Map with Bubbles</h2>
+    <div id="countryMap" style="height: 600px; width: 100%;"></div>
+  </div>
+
+  <div class="chart-container">
+    <h2>Organizations Average Record Count</h2>
+    <canvas id="orgsBarChart"></canvas>
+  </div>
+
+  <script>
+    async function fetchSheetData(sheetUrl) {
+      const sheetId = sheetUrl.split('/')[5];
+      const sheetName = sheetUrl.split('gid=')[1];
+      const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
+      const response = await fetch(url);
+      const text = await response.text();
+      const match = text.match(/\{.*\}/s);
+      if (match) {
+        return JSON.parse(match[0]);
+      }
+      throw new Error('Failed to parse JSON data');
+    }
+
+    function processToneData(data) {
+      const rows = data.table.rows;
+      const toneValues = rows.map(row => parseFloat(row.c[7].v)); // Adjust index if needed
+      const avgTone = toneValues.reduce((a, b) => a + b, 0) / toneValues.length;
+      return { toneValues, avgTone };
+    }
+
+    function processThemesData(data) {
+      const rows = data.table.rows;
+      const themes = {};
+      rows.forEach(row => {
+        const theme = row.c[1].v;
+        const count = parseFloat(row.c[0].v);
+        if (themes[theme]) {
+          themes[theme] += count;
+        } else {
+          themes[theme] = count;
+        }
+      });
+      const labels = Object.keys(themes).sort((a, b) => themes[b] - themes[a]);
+      const counts = labels.map(label => themes[label]);
+      return { labels, counts };
+    }
+
+    function processPersonsData(data) {
+      const rows = data.table.rows;
+      const persons = {};
+      rows.forEach(row => {
+        const person = row.c[1].v;
+        const count = parseFloat(row.c[0].v);
+        if (persons[person]) {
+          persons[person] += count;
+        } else {
+          persons[person] = count;
+        }
+      });
+      const labels = Object.keys(persons).sort((a, b) => persons[b] - persons[a]);
+      const counts = labels.map(label => persons[label]);
+      return { labels, counts };
+    }
+
+    function processOrgsData(data) {
+      const rows = data.table.rows;
+      const orgs = {};
+      rows.forEach(row => {
+        const org = row.c[1].v;
+        const count = parseFloat(row.c[0].v);
+        if (orgs[org]) {
+          orgs[org] += count;
+        } else {
+          orgs[org] = count;
+        }
+      });
+      const labels = Object.keys(orgs).sort((a, b) => orgs[b] - orgs[a]);
+      const counts = labels.map(label => orgs[label]);
+      return { labels, counts };
+    }
+
+    function processDocsData(data) {
+      const rows = data.table.rows;
+      const docs = rows.map(row => ({
+        id: row.c[4].v,
+        image: row.c[5].v
+      }));
+      return docs.sort((a, b) => b.id.localeCompare(a.id)).slice(0, 20);
+    }
+
+    function processLocationsData(data) {
+      const rows = data.table.rows;
+      const locations = rows.map(row => [
+        row.c[0].v,
+        parseFloat(row.c[1].v),
+        parseFloat(row.c[2].v),
+        parseFloat(row.c[3].v)
+      ]);
+      return locations;
+    }
+
+    async function initToneHistogram() {
+      const data = await fetchSheetData('https://docs.google.com/spreadsheets/d/18zMteRtj6HsyJ4CNfmr3HUCUIAFZxsZTcv-pRv3_P58/edit?usp=drive_link/edit?gid=0');
+      const { toneValues, avgTone } = processToneData(data);
+      const ctx = document.getElementById('toneHistogram').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Array.from({ length: 20 }, (_, i) => i * (Math.max(...toneValues) / 20)),
+          datasets: [{
+            label: 'Overall Tone',
+            data: toneValues,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+          }]
+        },
+        options: {
+          responsive: true,
+          indexAxis: 'x',
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Overall Tone'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Frequency'
+              },
+              beginAtZero: true
+            }
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: 'Tone Histogram'
+            }
+          }
+        }
+      });
+      document.getElementById('avgOverallTone').innerText = `Average Overall Tone: ${avgTone.toFixed(2)}`;
+    }
+
+    async function initThemeBarChart() {
+      const data = await fetchSheetData('https://docs.google.com/spreadsheets/d/1FUntzgIzuG5eMKNzRCH-C8-XOJwYJ_lHnEcmsBAPMVM/edit?usp=drive_link/edit?gid=0');
+      const { labels, counts } = processThemesData(data);
+      const ctx = document.getElementById('themeBarChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Distinct Count of GKG Record IDs',
+            data: counts,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          indexAxis: 'y',
+          plugins: {
+            title: {
+              display: true,
+              text: 'Themes Average Record Count'
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Distinct Count of GKG Record IDs'
+              },
+              beginAtZero: true
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Theme'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    async function initDocThumbnails() {
+      const data = await fetchSheetData('https://docs.google.com/spreadsheets/d/18zMteRtj6HsyJ4CNfmr3HUCUIAFZxsZTcv-pRv3_P58/edit?usp=drive_link/edit?gid=0');
+      const docs = processDocsData(data);
+      const container = document.getElementById('docThumbnails');
+      docs.forEach(doc => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <img src="${doc.image}" alt="${doc.id}" />
+          <p>${doc.id}</p>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function initPersonsBarChart() {
+      const data = await fetchSheetData('https://docs.google.com/spreadsheets/d/1z7A4Me-8ey-AbuVMSdqQoD1vTLwXShW55KmkhvcEHsk/edit?usp=drive_link/edit?gid=0');
+      const { labels, counts } = processPersonsData(data);
+      const ctx = document.getElementById('personsBarChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Distinct Count of GKG Record IDs',
+            data: counts,
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            borderColor: 'rgba(153, 102, 255, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          indexAxis: 'y',
+          plugins: {
+            title: {
+              display: true,
+              text: 'Persons Average Record Count'
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Distinct Count of GKG Record IDs'
+              },
+              beginAtZero: true
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Person'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    async function initCountryMap() {
+      const data = await fetchSheetData('https://docs.google.com/spreadsheets/d/1IdW4Ibwl3DT3R5luR-4zT-JzmD8sUg9Wdvq7Gwtkr5Y/edit?usp=drive_link/edit?gid=0');
+      const locations = processLocationsData(data);
+
+      google.charts.load('current', { packages: ['geochart'] });
+      google.charts.setOnLoadCallback(() => {
+        const dataTable = new google.visualization.DataTable();
+        dataTable.addColumn('string', 'Country');
+        dataTable.addColumn('number', 'Latitude');
+        dataTable.addColumn('number', 'Longitude');
+        dataTable.addColumn('number', 'Count');
+        dataTable.addRows(locations);
+
+        const options = {
+          title: 'Country Map with Bubbles',
+          colorAxis: { colors: ['#e5f5f9', '#2ca25f'] },
+          sizeAxis: { minSize: 5, maxSize: 100 }
+        };
+
+        const chart = new google.visualization.GeoChart(document.getElementById('countryMap'));
+        chart.draw(dataTable, options);
+      });
+    }
+
+    async function initOrgsBarChart() {
+      const data = await fetchSheetData('https://docs.google.com/spreadsheets/d/1xLhgYyTyITsspbFSai81SrsRSNq8yV9ZEvlnBHtN4qc/edit?usp=drive_link/edit?gid=0');
+      const { labels, counts } = processOrgsData(data);
+      const ctx = document.getElementById('orgsBarChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Distinct Count of GKG Record IDs',
+            data: counts,
+            backgroundColor: 'rgba(255, 159, 64, 0.2)',
+            borderColor: 'rgba(255, 159, 64, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          indexAxis: 'y',
+          plugins: {
+            title: {
+              display: true,
+              text: 'Organizations Average Record Count'
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Distinct Count of GKG Record IDs'
+              },
+              beginAtZero: true
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Organization'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    initToneHistogram();
+    initThemeBarChart();
+    initDocThumbnails();
+    initPersonsBarChart();
+    initCountryMap();
+    initOrgsBarChart();
+  </script>
+</body>
+</html>
