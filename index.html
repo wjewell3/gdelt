@@ -28,6 +28,15 @@
       max-width: 100px;
       max-height: 100px;
     }
+    .chart-container canvas {
+      height: 300px;
+    }
+    .bar-chart-container {
+      width: 100%;
+    }
+    .bar-chart-container canvas {
+      height: 400px;
+    }
   </style>
 </head>
 <body>
@@ -45,7 +54,7 @@
   </div>
 
   <div class="chart-container">
-    <h2>Top 20 Document IDs with Thumbnails</h2>
+    <h2>Articles</h2>
     <div id="docThumbnails"></div>
   </div>
 
@@ -93,11 +102,30 @@
     }
 
     function processToneData(data) {
-      if (!data) return { toneValues: [], avgTone: 0, gkgIDs: [] };
+      if (!data) return { toneBins: [], avgTone: 0, labels: [] };
       const rows = data.table.rows;
       const toneValues = rows.map(row => parseFloat(row.c[7].v)); // Adjust index if needed
       const avgTone = toneValues.reduce((a, b) => a + b, 0) / toneValues.length;
-      return { toneValues, avgTone, gkgIDs: rows.map(row => row.c[0].v) };
+
+      // Binning the tone values into 10 bins
+      const minTone = Math.min(...toneValues);
+      const maxTone = Math.max(...toneValues);
+      const binSize = (maxTone - minTone) / 10;
+      const toneBins = Array(10).fill(0);
+
+      toneValues.forEach(value => {
+        const binIndex = Math.min(Math.floor((value - minTone) / binSize), 9);
+        toneBins[binIndex] += 1;
+      });
+
+      // Create labels for tone ranges
+      const labels = Array.from({ length: 10 }, (_, i) => {
+        const rangeStart = (minTone + i * binSize).toFixed(2);
+        const rangeEnd = (minTone + (i + 1) * binSize).toFixed(2);
+        return `${rangeStart} - ${rangeEnd}`;
+      });
+
+      return { toneBins, avgTone, labels };
     }
 
     function processThemesData(data) {
@@ -106,7 +134,7 @@
       const themes = {};
       rows.forEach(row => {
         const theme = row.c[1].v;
-        const count = 0
+        const count = 0;
         const gkgID = row.c[0].v;
         if (themes[theme]) {
           themes[theme].count += 1;
@@ -174,193 +202,181 @@
       if (!data) return [];
       const rows = data.table.rows;
       return rows.map(row => ({
-        lat: parseFloat(row.c[7].v),
-        lng: parseFloat(row.c[8].v),
-        count: parseFloat(row.c[0].v),
-        gkgID: row.c[0].v
+        lat: parseFloat(row.c[3].v),
+        lng: parseFloat(row.c[4].v),
+        count: parseInt(row.c[1].v, 10)
       }));
     }
 
     function renderCharts(data) {
-      if (data.tone.toneValues.length === 0) {
+      // Tone Histogram
+      const toneCtx = document.getElementById('toneHistogram').getContext('2d');
+      const toneData = processToneData(data.tone);
+      if (toneData.toneBins.length === 0) {
         document.getElementById('toneHistogram').style.display = 'none';
       } else {
-        const toneCtx = document.getElementById('toneHistogram').getContext('2d');
-        const toneChart = new Chart(toneCtx, {
-          type: 'bar',
-          data: {
-            labels: Array.from({ length: data.tone.toneValues.length }, (_, i) => i + 1),
-            datasets: [{
-              label: 'Tone Value',
-              data: data.tone.toneValues,
-              backgroundColor: 'rgba(75, 192, 192, 0.2)',
-              borderColor: 'rgba(75, 192, 192, 1)',
-              borderWidth: 1
-            }]
-          },
-          options: {
-            scales: {
-              x: { beginAtZero: true },
-              y: { beginAtZero: true }
+        new Chart(toneCtx, {
+        type: 'bar',
+        data: {
+          labels: toneData.labels, // Use the labels generated for the x-axis
+          datasets: [{
+            label: 'Tone Count',
+            data: toneData.toneBins,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Tone Range'
+              },
+              ticks: {
+                callback: function(value, index, values) {
+                  // Return the label for the tick on the x-axis
+                  return toneData.labels[index];
+                }
+              }
+            },
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Count'
+              }
             }
           }
-        });
-        document.getElementById('avgOverallTone').textContent = `Average Overall Tone: ${data.tone.avgTone.toFixed(2)}`;
+        }
+      });
+        document.getElementById('avgOverallTone').textContent = `Average Overall Tone: ${toneData.avgTone.toFixed(2)}`;
       }
 
-      if (data.themes.labels.length === 0) {
-        document.getElementById('themeBarChart').style.display = 'none';
-      } else {
-        const themeCtx = document.getElementById('themeBarChart').getContext('2d');
-        const themeChart = new Chart(themeCtx, {
-          type: 'bar',
-          data: {
-            labels: data.themes.labels,
-            datasets: [{
-              label: 'Average Record Count',
-              data: data.themes.counts,
-              backgroundColor: 'rgba(153, 102, 255, 0.2)',
-              borderColor: 'rgba(153, 102, 255, 1)',
-              borderWidth: 1
-            }]
-          },
-          options: {
-            scales: {
-              x: { beginAtZero: true },
-              y: { beginAtZero: true }
+      // Themes Chart
+      const themeCtx = document.getElementById('themeBarChart').getContext('2d');
+      const themesData = processThemesData(data.themes);
+      new Chart(themeCtx, {
+        type: 'bar',
+        data: {
+          labels: themesData.labels,
+          datasets: [{
+            label: 'Article Count',
+            data: themesData.counts,
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            borderColor: 'rgba(153, 102, 255, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y', // Make bars horizontal
+          scales: {
+            x: {
+              beginAtZero: true
             }
           }
-        });
-      }
+        }
+      });
 
-      if (data.persons.labels.length === 0) {
-        document.getElementById('personsBarChart').style.display = 'none';
-      } else {
-        const personsCtx = document.getElementById('personsBarChart').getContext('2d');
-        const personsChart = new Chart(personsCtx, {
-          type: 'bar',
-          data: {
-            labels: data.persons.labels,
-            datasets: [{
-              label: 'Average Record Count',
-              data: data.persons.counts,
-              backgroundColor: 'rgba(255, 159, 64, 0.2)',
-              borderColor: 'rgba(255, 159, 64, 1)',
-              borderWidth: 1
-            }]
-          },
-          options: {
-            scales: {
-              x: { beginAtZero: true },
-              y: { beginAtZero: true }
+      // Persons Chart
+      const personsCtx = document.getElementById('personsBarChart').getContext('2d');
+      const personsData = processPersonsData(data.persons);
+      new Chart(personsCtx, {
+        type: 'bar',
+        data: {
+          labels: personsData.labels,
+          datasets: [{
+            label: 'Article Count',
+            data: personsData.counts,
+            backgroundColor: 'rgba(255, 159, 64, 0.2)',
+            borderColor: 'rgba(255, 159, 64, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y', // Make bars horizontal
+          scales: {
+            x: {
+              beginAtZero: true
             }
           }
-        });
-      }
+        }
+      });
 
-      if (data.orgs.labels.length === 0) {
-        document.getElementById('orgsBarChart').style.display = 'none';
-      } else {
-        const orgsCtx = document.getElementById('orgsBarChart').getContext('2d');
-        const orgsChart = new Chart(orgsCtx, {
-          type: 'bar',
-          data: {
-            labels: data.orgs.labels,
-            datasets: [{
-              label: 'Average Record Count',
-              data: data.orgs.counts,
-              backgroundColor: 'rgba(255, 99, 132, 0.2)',
-              borderColor: 'rgba(255, 99, 132, 1)',
-              borderWidth: 1
-            }]
-          },
-          options: {
-            scales: {
-              x: { beginAtZero: true },
-              y: { beginAtZero: true }
+      // Organizations Chart
+      const orgsCtx = document.getElementById('orgsBarChart').getContext('2d');
+      const orgsData = processOrgsData(data.orgs);
+      new Chart(orgsCtx, {
+        type: 'bar',
+        data: {
+          labels: orgsData.labels,
+          datasets: [{
+            label: 'Article Count',
+            data: orgsData.counts,
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y', // Make bars horizontal
+          scales: {
+            x: {
+              beginAtZero: true
             }
           }
-        });
-      }
-    }
+        }
+      });
 
-    function renderDocThumbnails(docs) {
-      if (docs.length === 0) {
-        document.getElementById('docThumbnails').style.display = 'none';
-      } else {
-        const thumbnailsContainer = document.getElementById('docThumbnails');
-        docs.forEach(doc => {
-          const thumbnailDiv = document.createElement('div');
-          thumbnailDiv.innerHTML = `
-            <img src="${doc.image}" alt="${doc.id}">
-            <p>${doc.id}</p>
-          `;
-          thumbnailsContainer.appendChild(thumbnailDiv);
-        });
-      }
-    }
+      // Document Thumbnails
+      const docThumbnailsDiv = document.getElementById('docThumbnails');
+      const docsData = processDocsData(data.documents);
+      docsData.forEach(doc => {
+        const div = document.createElement('div');
+        div.innerHTML = `<img src="${doc.image}" alt="Document Image"><br>GKG ID: ${doc.gkgID}`;
+        docThumbnailsDiv.appendChild(div);
+      });
 
-    function renderMap(locations) {
-      if (locations.length === 0) {
-        document.getElementById('countryMap').style.display = 'none';
-      } else {
-        const map = L.map('countryMap').setView([0, 0], 2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
+      // Country Map with Bubbles
+      const map = L.map('countryMap').setView([20, 0], 2);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+      const locationsData = processLocationsData(data.locations);
+      locationsData.forEach(location => {
+        L.circle([location.lat, location.lng], {
+          color: 'blue',
+          fillColor: '#30f',
+          fillOpacity: 0.5,
+          radius: location.count * 1000
         }).addTo(map);
-        locations.forEach(location => {
-          L.circle([location.lat, location.lng], {
-            color: 'blue',
-            fillColor: '#30f',
-            fillOpacity: 0.5,
-            radius: location.count * 1000
-          }).addTo(map);
-        });
-      }
+      });
     }
 
-    async function initializeDashboard() {
-      try {
-        const dataPromises = Object.entries(sheets).map(async ([key, url]) => {
-          const data = await fetchSheetData(url);
-          switch (key) {
-            case 'toneData':
-              return { key, data: processToneData(data) };
-            case 'themesData':
-              return { key, data: processThemesData(data) };
-            case 'documentData':
-              return { key, data: processDocsData(data) };
-            case 'personsData':
-              return { key, data: processPersonsData(data) };
-            case 'countryData':
-              return { key, data: processLocationsData(data) };
-            case 'orgsData':
-              return { key, data: processOrgsData(data) };
-          }
-        });
+    async function initialize() {
+      const [toneData, themesData, documentsData, personsData, locationsData, orgsData] = await Promise.all([
+        fetchSheetData(sheets.toneData),
+        fetchSheetData(sheets.themesData),
+        fetchSheetData(sheets.documentData),
+        fetchSheetData(sheets.personsData),
+        fetchSheetData(sheets.countryData),
+        fetchSheetData(sheets.orgsData)
+      ]);
+      
+      const data = {
+        tone: toneData,
+        themes: themesData,
+        documents: documentsData,
+        persons: personsData,
+        locations: locationsData,
+        orgs: orgsData
+      };
 
-        const results = await Promise.all(dataPromises);
-
-        const dashboardData = {};
-        results.forEach(result => {
-          dashboardData[result.key] = result.data;
-        });
-
-        renderCharts({
-          tone: dashboardData.toneData,
-          themes: dashboardData.themesData,
-          persons: dashboardData.personsData,
-          orgs: dashboardData.orgsData
-        });
-
-        renderDocThumbnails(dashboardData.documentData);
-        renderMap(dashboardData.countryData);
-      } catch (error) {
-        console.error('Error initializing dashboard:', error);
-      }
+      renderCharts(data);
     }
 
-    initializeDashboard();
+    initialize();
   </script>
 </body>
 </html>
