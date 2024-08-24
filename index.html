@@ -357,15 +357,42 @@
         }
       });
 
-      // Document Thumbnails
-      const docThumbnailsDiv = document.getElementById('docThumbnails');
-      const docsData = processDocsData(data.documents);
-      docsData.forEach(doc => {
-        const div = document.createElement('div');
-        div.innerHTML = `<a href="${doc.id}" target="_blank"><img src="${doc.image}" alt="Document Image"></a>`;
-        docThumbnailsDiv.appendChild(div);
-      });
+// Document Thumbnails
+const docThumbnailsDiv = document.getElementById('docThumbnails');
+const docsData = processDocsData(data.documents);
 
+// Set to keep track of unique image URLs
+const seenImages = new Set();
+
+docsData.forEach(doc => {
+  // Check if the image URL has already been processed
+  if (seenImages.has(doc.image)) {
+    return; // Skip if the image is a duplicate
+  }
+
+  // Add the image URL to the set of seen images
+  seenImages.add(doc.image);
+
+  const div = document.createElement('div');
+
+  // Create the image element
+  const img = document.createElement('img');
+  img.src = doc.image;
+  img.alt = 'Document Image';
+  img.onerror = function() {
+    // Remove the thumbnail div if the image fails to load
+    div.remove();
+  };
+
+  // Create the link element
+  const a = document.createElement('a');
+  a.href = doc.id;
+  a.target = '_blank';
+  a.appendChild(img);
+
+  div.appendChild(a);
+  docThumbnailsDiv.appendChild(div);
+});
 
       // Country Map with Bubbles
       const map = L.map('countryMap').setView([20, 0], 2);
