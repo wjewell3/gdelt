@@ -25,8 +25,10 @@
       text-align: center;
     }
     img {
-      max-width: 100px;
-      max-height: 100px;
+      max-width: 250px;
+      max-height: 250px;
+      width: auto;
+      height: auto;
     }
     .chart-container canvas {
       height: 300px;
@@ -202,9 +204,9 @@
       if (!data) return [];
       const rows = data.table.rows;
       return rows.map(row => ({
-        lat: parseFloat(row.c[3].v),
-        lng: parseFloat(row.c[4].v),
-        count: parseInt(row.c[1].v, 10)
+        lat: parseFloat(row.c[7].v),
+        lng: parseFloat(row.c[8].v),
+        count: parseInt(row.c[0].v, 10)
       }));
     }
 
@@ -334,9 +336,10 @@
       const docsData = processDocsData(data.documents);
       docsData.forEach(doc => {
         const div = document.createElement('div');
-        div.innerHTML = `<img src="${doc.image}" alt="Document Image"><br>GKG ID: ${doc.gkgID}`;
+        div.innerHTML = `<a href="${doc.id}" target="_blank"><img src="${doc.image}" alt="Document Image"></a>`;
         docThumbnailsDiv.appendChild(div);
       });
+
 
       // Country Map with Bubbles
       const map = L.map('countryMap').setView([20, 0], 2);
