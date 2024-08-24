@@ -105,7 +105,7 @@
 
     function processToneData(data) {
       if (!data) return { toneBins: [], avgTone: 0, labels: [] };
-      const rows = data.table.rows;
+      const rows = data.table.rows.slice(1); // Skip the header row
       const toneValues = rows.map(row => parseFloat(row.c[7].v)); // Adjust index if needed
       const avgTone = toneValues.reduce((a, b) => a + b, 0) / toneValues.length;
 
@@ -132,7 +132,7 @@
 
     function processThemesData(data) {
       if (!data) return { labels: [], counts: [], themes: {} };
-      const rows = data.table.rows;
+      const rows = data.table.rows.slice(1); // Skip the header row
       const themes = {};
       rows.forEach(row => {
         const theme = row.c[1].v;
@@ -152,7 +152,7 @@
 
     function processPersonsData(data) {
       if (!data) return { labels: [], counts: [], persons: {} };
-      const rows = data.table.rows;
+      const rows = data.table.rows.slice(1); // Skip the header row
       const persons = {};
       rows.forEach(row => {
         const person = row.c[1].v;
@@ -172,7 +172,7 @@
 
     function processOrgsData(data) {
       if (!data) return { labels: [], counts: [], orgs: {} };
-      const rows = data.table.rows;
+      const rows = data.table.rows.slice(1); // Skip the header row
       const orgs = {};
       rows.forEach(row => {
         const org = row.c[1].v;
@@ -192,7 +192,7 @@
 
     function processDocsData(data) {
       if (!data) return [];
-      const rows = data.table.rows;
+      const rows = data.table.rows.slice(1); // Skip the header row
       return rows.map(row => ({
         id: row.c[4].v,
         image: row.c[5].v,
@@ -201,14 +201,40 @@
     }
 
     function processLocationsData(data) {
-      if (!data) return [];
-      const rows = data.table.rows;
-      return rows.map(row => ({
-        lat: parseFloat(row.c[7].v),
-        lng: parseFloat(row.c[8].v),
-        count: parseInt(row.c[0].v, 10)
-      }));
+  if (!data || !data.table || !data.table.rows) return [];
+
+  const rows = data.table.rows.slice(1); // Skip the header row
+  const latlongMap = {};
+
+  rows.forEach(row => {
+    const lat = parseFloat(row.c[7]?.v);
+    const lng = parseFloat(row.c[8]?.v);
+    const gkgID = row.c[0]?.v;
+
+    if (!isNaN(lat) && !isNaN(lng) && gkgID) {
+      const key = `${lat},${lng}`; // Unique key for lat/lng combination
+
+      if (!latlongMap[key]) {
+        latlongMap[key] = { count: 0, gkgIDs: new Set() };
+      }
+
+      latlongMap[key].gkgIDs.add(gkgID); // Use a Set to store unique gkgIDs
+      latlongMap[key].count = latlongMap[key].gkgIDs.size; // Count of unique gkgIDs
     }
+  });
+
+  // Convert latlongMap to an array of objects
+  return Object.keys(latlongMap).map(key => {
+    const [lat, lng] = key.split(',').map(Number);
+    return {
+      lat,
+      lng,
+      count: latlongMap[key].count,
+      gkgIDs: Array.from(latlongMap[key].gkgIDs)
+    };
+  });
+}
+
 
     function renderCharts(data) {
       // Tone Histogram
