@@ -10,6 +10,9 @@ from google.cloud import language_v1
 import requests
 import certifi
 from googleapiclient.errors import HttpError
+import time
+
+start_time = time.time()
 
 # Google Drive folder URL and ID
 gdrive_folder_id = "1QBYcTh8b3n0XBbPyr_VOrEbnTMQUtZC2"
@@ -122,6 +125,9 @@ def format_locations(df3, col):
     ]
     for i, col_name in enumerate(expected_columns):
         df3[col_name] = df3_split[i]
+    df3.dropna(subset=['LocationLatitude', 'LocationLongitude'], inplace=True)
+    df3.replace(np.nan, 'Null', inplace=True)
+    df3.replace('', 'Null', inplace=True)
     # df3.set_index('GKGRecordID', inplace=True)
     return df3
 
@@ -176,8 +182,13 @@ service_drive = build('drive', 'v3', credentials=credentials)
 service_sheets = build('sheets', 'v4', credentials=credentials)
 
 # Upload or update Google Sheets
+upload_or_update_gdrive(service_drive, service_sheets, df, "gdelt_gkg", gdrive_folder_id)
 upload_or_update_gdrive(service_drive, service_sheets, df_main, "gdelt_main", gdrive_folder_id)
 upload_or_update_gdrive(service_drive, service_sheets, df_themes, "gdelt_themes", gdrive_folder_id)
 upload_or_update_gdrive(service_drive, service_sheets, df_locs, "gdelt_locs", gdrive_folder_id)
 upload_or_update_gdrive(service_drive, service_sheets, df_persons, "gdelt_persons", gdrive_folder_id)
 upload_or_update_gdrive(service_drive, service_sheets, df_orgs, "gdelt_orgs", gdrive_folder_id)
+
+end_time = time.time()
+elapsed_time = end_time - start_time
+print(f"Total execution time: {elapsed_time:.2f} seconds")

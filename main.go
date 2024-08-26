@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/sheets/v4"
@@ -201,6 +202,37 @@ func dropDuplicates(data [][]string) [][]string {
 	return uniqueData
 }
 
+func dropNa(data [][]string) [][]string {
+	var cleanedData [][]string
+
+	for _, row := range data {
+		keepRow := true
+		for _, value := range row {
+			if value == "" { // Check for empty strings (or nil if working with pointers)
+				keepRow = false
+				break
+			}
+		}
+		if keepRow {
+			cleanedData = append(cleanedData, row)
+		}
+	}
+
+	return cleanedData
+}
+
+func fillNa(data [][]string) [][]string {
+    for i, row := range data {
+        for j, value := range row {
+            if value == "" {
+                data[i][j] = "Null"
+            }
+        }
+    }
+    return data
+}
+
+
 // Function to process and filter the data into different tables (like format_tone, format_col in Python)
 func processAndFilterData(data [][]string) ([][]string, [][]string, [][]string, [][]string, [][]string) {
 	var gdeltMain, gdeltLocs, gdeltPersons, gdeltOrgs, gdeltThemes [][]string
@@ -216,10 +248,10 @@ func processAndFilterData(data [][]string) ([][]string, [][]string, [][]string, 
 	for _, row := range data[1:] { // Skip header row
 		// Process the main table
 		tones := strings.Split(row[15], ",")
-		// locations := strings.Split(row[10], ";")
 		gdeltMain = append(gdeltMain, []string{
 			row[0], row[1], row[2], row[3], row[4], row[18], row[15], 
 			tones[0], tones[1], tones[2], tones[3], tones[4], tones[5], tones[6]})
+
 		// Split fields that use ';' and '#'
 		if len(row[10]) > 1 {
 			locations := strings.Split(row[10], ";")
@@ -230,6 +262,7 @@ func processAndFilterData(data [][]string) ([][]string, [][]string, [][]string, 
 					locs[0], locs[1], locs[2],locs[3],locs[4],locs[5],locs[6],locs[7],locs[8]})
 			}
 		}
+		
 		if len(row[12]) > 1 {
 			persons := strings.Split(row[12], ";")
 			for _, person := range persons {
@@ -237,7 +270,7 @@ func processAndFilterData(data [][]string) ([][]string, [][]string, [][]string, 
 				gdeltPersons = append(gdeltPersons, []string{row[0], person1[0]})
 			}
 		}
-		gdeltPersons = dropDuplicates(gdeltPersons)
+
 		if len(row[14]) > 1 {
 			orgs := strings.Split(row[14], ";")
 			for _, org := range orgs {
@@ -245,7 +278,7 @@ func processAndFilterData(data [][]string) ([][]string, [][]string, [][]string, 
 				gdeltOrgs = append(gdeltOrgs, []string{row[0], org1[0]})
 			}
 		}
-		gdeltOrgs = dropDuplicates(gdeltOrgs)
+
 		if len(row[8]) > 1 {
 			themes := strings.Split(row[8], ";")
 			for _, theme := range themes {
@@ -253,13 +286,13 @@ func processAndFilterData(data [][]string) ([][]string, [][]string, [][]string, 
 				gdeltThemes = append(gdeltThemes, []string{row[0], theme1[0]})
 			}
 		}
-		gdeltThemes = dropDuplicates(gdeltThemes)
 	}
 
 	return gdeltMain, gdeltLocs, gdeltPersons, gdeltOrgs, gdeltThemes
 }
 
 func main() {
+	start := time.Now()
 	ctx := context.Background()
 	clientOption := option.WithCredentialsFile(svcAcctPath)
 
@@ -282,33 +315,44 @@ func main() {
 		return
 	}
 
+
 	// Split data into different tables
 	gdeltMain, gdeltLocs, gdeltPersons, gdeltOrgs, gdeltThemes := processAndFilterData(data)
 
+	gdeltMain = dropNa(gdeltMain) // nulls in thumbnail column sometimes - not worth it to keep em
+	gdeltLocs = dropDuplicates(gdeltLocs)
+	gdeltLocs = fillNa(gdeltLocs)
+	gdeltPersons = dropDuplicates(gdeltPersons)
+	gdeltOrgs = dropDuplicates(gdeltOrgs)
+	gdeltThemes = dropDuplicates(gdeltThemes)
+	gdeltThemes = dropNa(gdeltThemes)
+
 	// Upload or update the files in Google Drive
-	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltMain, "GKG_Main.csv")
+	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltMain, "gdelt_main")
 	if err != nil {
 		fmt.Println("Error uploading or updating GDrive file:", err)
 		return
 	}
-	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltLocs, "GKG_Locs.csv")
+	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltLocs, "gdelt_locs")
 	if err != nil {
 		fmt.Println("Error uploading or updating GDrive file:", err)
 		return
 	}
-	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltPersons, "GKG_Persons.csv")
+	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltPersons, "gdelt_persons")
 	if err != nil {
 		fmt.Println("Error uploading or updating GDrive file:", err)
 		return
 	}
-	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltOrgs, "GKG_Orgs.csv")
+	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltOrgs, "gdelt_orgs")
 	if err != nil {
 		fmt.Println("Error uploading or updating GDrive file:", err)
 		return
 	}
-	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltThemes, "GKG_Themes.csv")
+	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltThemes, "gdelt_themes")
 	if err != nil {
 		fmt.Println("Error uploading or updating GDrive file:", err)
 		return
 	}
+	elapsed := time.Since(start)
+	fmt.Printf("Total execution time: %s\n", elapsed)
 }
