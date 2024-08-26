@@ -1,3 +1,4 @@
+// gcloud functions deploy main --runtime go121 --trigger-http --entry-point=gdeltetl --memory=128MB
 package main
 
 import (

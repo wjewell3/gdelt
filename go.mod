@@ -1,6 +1,6 @@
-module main
+module https://github.com/wjewell3/gdelt/blob/main/main.go
 
-go 1.22.0
+go 1.21.0
 
 require (
 	cloud.google.com/go v0.115.1 // indirect
