@@ -1,4 +1,4 @@
-module github.com/wjewell3/gdelt/blob/main/main.go
+module github.com/wjewell3/gdelt
 
 go 1.21.0
 
