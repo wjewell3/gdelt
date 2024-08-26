@@ -22,7 +22,8 @@ import (
 const (
 	gdriveFolderID = "1QBYcTh8b3n0XBbPyr_VOrEbnTMQUtZC2"
 	tmpPath        = "/tmp"
-	svcAcctPath    = "/Users/FYE7200/Documents/Personal/gdelt/gdelt-433201-351ecf8fcad7.json"
+	// svcAcctPath    = "/Users/FYE7200/Documents/Personal/gdelt/gdelt-433201-351ecf8fcad7.json"
+	svcAcctPath = "projects/348469365843/secrets/gdelt"
 )
 
 func downloadLatestGKGFile() ([][]string, error) {
