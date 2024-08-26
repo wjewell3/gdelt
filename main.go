@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"sync"
 
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/sheets/v4"
@@ -101,7 +102,7 @@ func downloadLatestGKGFile() ([][]string, error) {
 	}
 	defer file.Close()
 
-	reader := csv.NewReader(file)
+	reader := csv.NewReader(bufio.NewReader(file))
 	reader.LazyQuotes = true // Allow more lenient parsing of quotes
 	reader.Comma = '\t'      // Change delimiter to tab
 	data, err := reader.ReadAll()
@@ -319,39 +320,40 @@ func main() {
 	// Split data into different tables
 	gdeltMain, gdeltLocs, gdeltPersons, gdeltOrgs, gdeltThemes := processAndFilterData(data)
 
-	gdeltMain = dropNa(gdeltMain) // nulls in thumbnail column sometimes - not worth it to keep em
-	gdeltLocs = dropDuplicates(gdeltLocs)
-	gdeltLocs = fillNa(gdeltLocs)
-	gdeltPersons = dropDuplicates(gdeltPersons)
-	gdeltOrgs = dropDuplicates(gdeltOrgs)
-	gdeltThemes = dropDuplicates(gdeltThemes)
-	gdeltThemes = dropNa(gdeltThemes)
+	var wg sync.WaitGroup
+	errChan := make(chan error, 5)
 
-	// Upload or update the files in Google Drive
-	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltMain, "gdelt_main")
-	if err != nil {
-		fmt.Println("Error uploading or updating GDrive file:", err)
-		return
+	uploadFuncs := []struct {
+		data     [][]string
+		fileName string
+	}{
+		{dropNa(gdeltMain), "gdelt_main"},
+		{dropDuplicates(fillNa(gdeltLocs)), "gdelt_locs"},
+		{dropDuplicates(gdeltPersons), "gdelt_persons"},
+		{dropDuplicates(gdeltOrgs), "gdelt_orgs"},
+		{dropDuplicates(dropNa(gdeltThemes)), "gdelt_themes"},
 	}
-	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltLocs, "gdelt_locs")
-	if err != nil {
-		fmt.Println("Error uploading or updating GDrive file:", err)
-		return
+
+	for _, uf := range uploadFuncs {
+		wg.Add(1)
+		go func(uf struct {
+			data     [][]string
+			fileName string
+		}) {
+			defer wg.Done()
+			if err := uploadOrUpdateGDrive(driveService, sheetsService, uf.data, uf.fileName); err != nil {
+				errChan <- err
+			}
+		}(uf)
 	}
-	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltPersons, "gdelt_persons")
-	if err != nil {
-		fmt.Println("Error uploading or updating GDrive file:", err)
-		return
-	}
-	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltOrgs, "gdelt_orgs")
-	if err != nil {
-		fmt.Println("Error uploading or updating GDrive file:", err)
-		return
-	}
-	err = uploadOrUpdateGDrive(driveService, sheetsService, gdeltThemes, "gdelt_themes")
-	if err != nil {
-		fmt.Println("Error uploading or updating GDrive file:", err)
-		return
+
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
+		if err != nil {
+			fmt.Println("Error during upload:", err)
+		}
 	}
 	elapsed := time.Since(start)
 	fmt.Printf("Total execution time: %s\n", elapsed)
