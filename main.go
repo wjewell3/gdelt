@@ -1,4 +1,9 @@
-// gcloud functions deploy main --runtime go121 --trigger-http --entry-point=gdeltetl --memory=128MB
+// gcloud functions deploy main \
+// --runtime go121 \
+// --trigger-http \
+// --entry-point=gdeltetl \
+// --memory=128MB \
+// --service-account=firebase-adminsdk-e7n2g@gdelt-433201.iam.gserviceaccount.com
 package main
 
 import (
