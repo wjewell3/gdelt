@@ -4,7 +4,7 @@
 // --entry-point=gdeltetl \
 // --memory=128MB \
 // --service-account=firebase-adminsdk-e7n2g@gdelt-433201.iam.gserviceaccount.com
-package gdeltetl
+package github.com/wjewell3/gdelt/gdeltetl
 // package main
 
 import (
