@@ -3,5 +3,6 @@ package main
 import "github.com/wjewell3/gdelt/functions"
 
 func main() {
-	functions.Gdeltetl()
+    // Call the function using the package name
+    functions.Gdeltetl()
 }
