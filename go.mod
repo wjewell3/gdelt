@@ -2,7 +2,12 @@ module github.com/wjewell3/gdelt
 
 go 1.23.0
 
-require github.com/GoogleCloudPlatform/functions-framework-go v1.5.2
+require (
+	cloud.google.com/go/secretmanager v1.13.5
+	github.com/GoogleCloudPlatform/functions-framework-go v1.5.2
+	google.golang.org/api v0.194.0
+	google.golang.org/genproto v0.0.0-20240814211410-ddb44dafa142
+)
 
 require (
 	cel.dev/expr v0.15.0 // indirect
@@ -109,7 +114,6 @@ require (
 	cloud.google.com/go/retail v1.17.4 // indirect
 	cloud.google.com/go/run v1.4.0 // indirect
 	cloud.google.com/go/scheduler v1.10.12 // indirect
-	cloud.google.com/go/secretmanager v1.13.5 // indirect
 	cloud.google.com/go/security v1.17.4 // indirect
 	cloud.google.com/go/securitycenter v1.33.1 // indirect
 	cloud.google.com/go/servicecontrol v1.11.1 // indirect
@@ -307,9 +311,7 @@ require (
 	gonum.org/v1/gonum v0.12.0 // indirect
 	gonum.org/v1/netlib v0.0.0-20190313105609-8cb42192e0e0 // indirect
 	gonum.org/v1/plot v0.10.1 // indirect
-	google.golang.org/api v0.194.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/genproto v0.0.0-20240814211410-ddb44dafa142 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240730163845-b1a4ccb954bf // indirect
 	google.golang.org/genproto/googleapis/bytestream v0.0.0-20240814211410-ddb44dafa142 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
