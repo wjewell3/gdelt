@@ -30,7 +30,7 @@ import (
 )
 
 func init() {
-	functions.HTTP("gdeltetl", gdeltetl)
+	functions.HTTP("gdeltetl", gdeltetlhttp)
  }
  
 // helloHTTP is an HTTP Cloud Function with a request parameter.
@@ -356,8 +356,13 @@ func processAndFilterData(data [][]string) ([][]string, [][]string, [][]string, 
 	return gdeltMain, gdeltLocs, gdeltPersons, gdeltOrgs, gdeltThemes
 }
 
-func gdeltetl(w http.ResponseWriter, r *http.Request) {
+func gdeltetlhttp(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "ETL process started")
+	gdeltetl()
+}
+
+func gdeltetl() {
+	// fmt.Println("ETL process started")
 	start := time.Now()
 	ctx := context.Background()
 	secret, err := accessSecretVersion(secretID, versionID)
