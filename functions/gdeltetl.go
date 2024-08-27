@@ -14,6 +14,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -54,15 +55,13 @@ func init() {
 const (
 	gdriveFolderID = "1QBYcTh8b3n0XBbPyr_VOrEbnTMQUtZC2"
 	tmpPath        = "/tmp"
-	// svcAcctPath    = "/Users/FYE7200/Documents/Personal/gdelt/gdelt-433201-351ecf8fcad7.json"
-	// svcAcctPath    = "/projects/348469365843/secrets/gdelt-2"
-	svcAcctPath    = "gdelt-2"
+	svcAcctPath    = "gdelt-2" // not used
 	projectID	   = "gdelt-433201"
-	secretID	   = "348469365843"
+	secretID	   = "gdelt-2"
 	versionID	   = "1"
 )
 
-func accessSecretVersion(secretID string, versionID string) (string, error) {
+func AccessSecretVersion(secretID string, versionID string) (string, error) {
 	ctx := context.Background()
 
 	// Create the Secret Manager client
@@ -365,8 +364,23 @@ func Gdeltetl() {
 	// fmt.Println("ETL process started")
 	start := time.Now()
 	ctx := context.Background()
-	secret, err := accessSecretVersion(secretID, versionID)
-	clientOption := option.WithCredentialsFile(secret)
+	secret, err := AccessSecretVersion(secretID, versionID)
+
+    tempFile, err := ioutil.TempFile("", "credentials-*.json")
+    if err != nil {
+        fmt.Printf("Failed to create temporary file: %v\n", err)
+        return
+    }
+    defer os.Remove(tempFile.Name()) // Clean up the file after use
+
+    if _, err := tempFile.Write([]byte(secret)); err != nil {
+        fmt.Printf("Failed to write to temporary file: %v\n", err)
+        return
+    }
+    tempFile.Close()
+
+    // Use the temporary file path for credentials
+    clientOption := option.WithCredentialsFile(tempFile.Name())
 
 	driveService, err := drive.NewService(ctx, clientOption)
 	if err != nil {
