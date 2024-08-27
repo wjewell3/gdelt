@@ -358,10 +358,10 @@ func processAndFilterData(data [][]string) ([][]string, [][]string, [][]string, 
 
 func gdeltetlhttp(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "ETL process started")
-	gdeltetl()
+	Gdeltetl()
 }
 
-func gdeltetl() {
+func Gdeltetl() {
 	// fmt.Println("ETL process started")
 	start := time.Now()
 	ctx := context.Background()
