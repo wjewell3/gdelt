@@ -1,5 +1,5 @@
 package main
 
-import "github.com/wjewell3/gdelt/gdeltetl"
+import "github.com/wjewell3/gdelt"
 
 gdeltetl.init()
