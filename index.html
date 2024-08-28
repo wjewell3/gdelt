@@ -85,6 +85,47 @@
       orgsData: 'https://docs.google.com/spreadsheets/d/1My2Q6pZ9xKyuJM_k1vrnXYX1ma9un4ecutUbEwfKrOI/edit?usp=drive_link/edit?gid=0#gid=0'
     };
 
+    const dataUrl = 'https://us-central1-gdelt-433201.cloudfunctions.net/function-3';
+let pollingAttempts = 0;
+const maxPollingAttempts = 1; // Poll twice, as 30 seconds * 2 = 60 seconds
+
+async function fetchData() {
+  try {
+    const response = await fetch(dataUrl);
+    if (!response.ok) {
+      console.error('HTTP status:', response.status, response.statusText);
+      const text = await response.text();
+      console.error('Response text:', text);
+      throw new Error('Network response was not ok');
+    }
+    const text = await response.text(); // Parse the response as text
+    console.log('Response text:', text); // Log the response text to see what it says
+    return text; // Return the text instead of JSON
+  } catch (error) {
+    console.error('Failed to fetch data:', error);
+    return null;
+  }
+}
+
+async function checkForUpdates() {
+  const data = await fetchData();
+
+  if (data) {
+    if (data.includes('ETL process started')) {
+      window.location.reload(); // Reload the page if the process started
+    }
+  } else {
+    if (pollingAttempts < maxPollingAttempts) {
+      pollingAttempts++;
+      setTimeout(checkForUpdates, 30000); // Poll every 30 seconds for the first minute
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  checkForUpdates(); // Initial call to fetch data
+});
+
     async function fetchSheetData(sheetUrl) {
       try {
         const sheetId = sheetUrl.split('/')[5];
