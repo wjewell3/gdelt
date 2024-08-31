@@ -8,6 +8,9 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
+    #loadingBar {
+      transition: width 0.4s ease;
+    }
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
@@ -43,7 +46,9 @@
 </head>
 <body>
   <h1>GDELT News Dashboard</h1>
-  <h3>Click any viz to filter dashboard</h3>
+  <div id="loadingBarContainer" style="position: fixed; top: 0; left: 0; width: 100%; height: 5px; background-color: #f3f3f3; z-index: 1000;">
+    <div id="loadingBar" style="width: 0%; height: 100%; background-color: #4caf50;"></div>
+  </div>
   <button id="resetButton" style="position: absolute; top: 10px; right: 10px; z-index: 1000;">Reset</button>
 
   <div class="chart-container">
@@ -241,7 +246,7 @@
         id: row.c[4].v,
         image: row.c[5].v,
         gkgID: row.c[0].v
-      })).sort((a, b) => b.id.localeCompare(a.id)).slice(0, 10);
+      })).sort((a, b) => b.id.localeCompare(a.id)).slice(0, 9);
     }
 
     function processLocationsData(data) {
@@ -519,33 +524,49 @@
 }
 
 async function initialize() {
-  // grab data from google sheets
-  const [toneData, themesData, documentsData, personsData, locationsData, orgsData] = await Promise.all([
-    fetchSheetData(sheets.toneData),
-    fetchSheetData(sheets.themesData),
-    fetchSheetData(sheets.documentData),
-    fetchSheetData(sheets.personsData),
-    fetchSheetData(sheets.countryData),
-    fetchSheetData(sheets.orgsData)
-  ]);
-  console.log(toneData);
-  console.log(themesData);
-  console.log(documentsData);
-  console.log(personsData);
-  console.log(locationsData);
-  console.log(orgsData);
-// get only fields i need broken out into labels, counts, and the raw data piece
-  data = {
-    tone: processToneData(toneData),
-    themes: processThemesData(themesData),
-    documents: processDocsData(documentsData),
-    persons: processPersonsData(personsData),
-    locations: processLocationsData(locationsData),
-    orgs: processOrgsData(orgsData)
-  };
-  // console.log('initial data',data)
+  // Show loading bar
+  const loadingBar = document.getElementById('loadingBar');
+  loadingBar.style.width = '0%'; // Reset the loading bar
 
-  renderCharts(data, toneData, themesData, documentsData, personsData, locationsData ,orgsData);
+  try {
+    // Start loading data
+    loadingBar.style.width = '20%';
+    const toneData = await fetchSheetData(sheets.toneData);
+    loadingBar.style.width = '40%';
+    const themesData = await fetchSheetData(sheets.themesData);
+    loadingBar.style.width = '60%';
+    const documentsData = await fetchSheetData(sheets.documentData);
+    loadingBar.style.width = '80%';
+    const personsData = await fetchSheetData(sheets.personsData);
+    loadingBar.style.width = '90%';
+    const locationsData = await fetchSheetData(sheets.countryData);
+    loadingBar.style.width = '95%';
+    const orgsData = await fetchSheetData(sheets.orgsData);
+
+    // Process the data
+    data = {
+      tone: processToneData(toneData),
+      themes: processThemesData(themesData),
+      documents: processDocsData(documentsData),
+      persons: processPersonsData(personsData),
+      locations: processLocationsData(locationsData),
+      orgs: processOrgsData(orgsData)
+    };
+
+    // Render charts with the processed data
+    renderCharts(data, toneData, themesData, documentsData, personsData, locationsData);
+
+    // Hide loading bar
+    loadingBar.style.width = '100%';
+    setTimeout(() => {
+      document.getElementById('loadingBarContainer').style.display = 'none';
+    }, 500); // Allow a small delay for the full bar to be visible
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    // Hide loading bar if there's an error
+    document.getElementById('loadingBarContainer').style.display = 'none';
+  }
 }
 
 initialize();
