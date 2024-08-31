@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard</title>
+  <title>GDELT News Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
@@ -42,18 +42,9 @@
   </style>
 </head>
 <body>
-  <h1>Dashboard</h1>
-
-  <div class="chart-container">
-    <h2>Tone Histogram</h2>
-    <canvas id="toneHistogram"></canvas>
-    <div id="avgOverallTone"></div>
-  </div>
-
-  <div class="chart-container">
-    <h2>Themes Average Record Count</h2>
-    <canvas id="themeBarChart"></canvas>
-  </div>
+  <h1>GDELT News Dashboard</h1>
+  <h3>Click any viz to filter dashboard</h3>
+  <button id="resetButton" style="position: absolute; top: 10px; right: 10px; z-index: 1000;">Reset</button>
 
   <div class="chart-container">
     <h2>Articles</h2>
@@ -61,17 +52,28 @@
   </div>
 
   <div class="chart-container">
-    <h2>Persons Average Record Count</h2>
+    <h2>Tone Counts</h2>
+    <canvas id="toneHistogram"></canvas>
+    <div id="avgOverallTone"></div>
+  </div>
+
+  <div class="chart-container">
+    <h2>Theme Counts</h2>
+    <canvas id="themeBarChart"></canvas>
+  </div>
+
+  <div class="chart-container">
+    <h2>Person Counts</h2>
     <canvas id="personsBarChart"></canvas>
   </div>
 
   <div class="chart-container">
-    <h2>Country Map with Bubbles</h2>
+    <h2>Map Counts</h2>
     <div id="countryMap" style="height: 600px; width: 100%;"></div>
   </div>
 
   <div class="chart-container">
-    <h2>Organizations Average Record Count</h2>
+    <h2>Organization Counts</h2>
     <canvas id="orgsBarChart"></canvas>
   </div>
 
@@ -186,7 +188,7 @@
           themes[theme] = { count, gkgIDs: [gkgID] };
         }
       });
-      const labels = Object.keys(themes).sort((a, b) => themes[b].count - themes[a].count).slice(0, 20);
+      const labels = Object.keys(themes).sort((a, b) => themes[b].count - themes[a].count).slice(0, 10);
       const counts = labels.map(label => themes[label].count);
       // console.log(themes)
       return { labels, counts, themes };
@@ -207,7 +209,7 @@
           persons[person] = { count, gkgIDs: [gkgID] };
         }
       });
-      const labels = Object.keys(persons).sort((a, b) => persons[b].count - persons[a].count).slice(0, 20);
+      const labels = Object.keys(persons).sort((a, b) => persons[b].count - persons[a].count).slice(0, 10);
       const counts = labels.map(label => persons[label].count);
       return { labels, counts, persons };
     }
@@ -227,7 +229,7 @@
           orgs[org] = { count, gkgIDs: [gkgID] };
         }
       });
-      const labels = Object.keys(orgs).sort((a, b) => orgs[b].count - orgs[a].count).slice(0, 20);
+      const labels = Object.keys(orgs).sort((a, b) => orgs[b].count - orgs[a].count).slice(0, 10);
       const counts = labels.map(label => orgs[label].count);
       return { labels, counts, orgs };
     }
@@ -304,11 +306,11 @@
         locations: processLocationsData(filterRowsByGkgIds(locationsData)),
         orgs: processOrgsData(filterRowsByGkgIds(orgsData))
       };
-      console.log(toneData.table)
+      // console.log(toneData.table)
       return filteredData;
     }
 
-    function handleChartClick(event, elements, chartData, chartType, data, toneData, themesData, documentsData, personsData, locationsData) {
+    function handleChartClick(event, elements, chartData, chartType, data, toneData, themesData, documentsData, personsData, locationsData, orgsData) {
       console.log('Event:', event);
       console.log('Elements:', elements);
       console.log('Chart Data:', chartData);
@@ -320,23 +322,23 @@
         const Label = event.chart.data.labels[index];
 
         if (chartData[Label]) {
-          console.log('Clicked on:',Label);
+          // console.log('Clicked on:',Label);
           // console.log(`chartData[Label] : ${chartData[Label]}`);
 
           const selectedGkgIds = chartData[Label].gkgIDs;
           globalGkgIds = selectedGkgIds;
           // console.log(globalGkgIds);
 
-          const filteredData = filterDataByGkgIds(globalGkgIds, toneData, themesData, documentsData, personsData, locationsData);
-          console.log('filteredData:',filteredData);
-          renderCharts(filteredData, toneData, themesData, documentsData, personsData, locationsData);
+          const filteredData = filterDataByGkgIds(globalGkgIds, toneData, themesData, documentsData, personsData, locationsData, orgsData);
+          // console.log('filteredData:',filteredData);
+          renderCharts(filteredData, toneData, themesData, documentsData, personsData, locationsData, orgsData);
         } else {
           console.error(`No data found for label: ${Label}`);
         }
       }
     }
 
-    function renderCharts(data, toneData, themesData, documentsData, personsData, locationsData) {
+    function renderCharts(data, toneData, themesData, documentsData, personsData, locationsData, orgsData) {
       if (toneChart) toneChart.destroy();
       if (themeChart) themeChart.destroy();
       if (personsChart) personsChart.destroy();
@@ -413,7 +415,7 @@
           beginAtZero: true
         }
       },
-      onClick: (event, elements) => handleChartClick(event, elements, data.themes.themes, 'themes', data, toneData, themesData, documentsData, personsData, locationsData)
+      onClick: (event, elements) => handleChartClick(event, elements, data.themes.themes, 'themes', data, toneData, themesData, documentsData, personsData, locationsData, orgsData)
     }
   });
 
@@ -438,7 +440,7 @@
           beginAtZero: true
         }
       },
-      onClick: (event, elements) => handleChartClick(event, elements, data.persons.persons, 'persons', data, toneData, themesData, documentsData, personsData, locationsData)
+      onClick: (event, elements) => handleChartClick(event, elements, data.persons.persons, 'persons', data, toneData, themesData, documentsData, personsData, locationsData, orgsData)
     }
   });
 
@@ -463,7 +465,7 @@
           beginAtZero: true
         }
       },
-      onClick: (event, elements) => handleChartClick(event, elements, data.orgs.orgs, 'orgs', data, toneData, themesData, documentsData, personsData, locationsData)
+      onClick: (event, elements) => handleChartClick(event, elements, data.orgs.orgs, 'orgs', data, toneData, themesData, documentsData, personsData, locationsData, orgsData)
     }
   });
 
@@ -541,12 +543,18 @@ async function initialize() {
     locations: processLocationsData(locationsData),
     orgs: processOrgsData(orgsData)
   };
-  console.log('initial data',data)
+  // console.log('initial data',data)
 
-  renderCharts(data, toneData, themesData, documentsData, personsData, locationsData);
+  renderCharts(data, toneData, themesData, documentsData, personsData, locationsData ,orgsData);
 }
 
 initialize();
+
+document.getElementById('resetButton').addEventListener('click', async function() {
+  // Call the initialize function when the reset button is clicked
+  await initialize();
+});
+
   </script>
 </body>
 </html>
