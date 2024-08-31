@@ -221,7 +221,7 @@
           themes[theme] = { count, gkgIDs: [gkgID] };
         }
       });
-      const labels = Object.keys(themes).sort((a, b) => themes[b].count - themes[a].count).slice(0, 10);
+      const labels = Object.keys(themes).sort((a, b) => themes[b].count - themes[a].count);
       const counts = labels.map(label => themes[label].count);
       // console.log(themes)
       return { labels, counts, themes };
@@ -242,7 +242,7 @@
           persons[person] = { count, gkgIDs: [gkgID] };
         }
       });
-      const labels = Object.keys(persons).sort((a, b) => persons[b].count - persons[a].count).slice(0, 10);
+      const labels = Object.keys(persons).sort((a, b) => persons[b].count - persons[a].count);
       const counts = labels.map(label => persons[label].count);
       return { labels, counts, persons };
     }
@@ -262,7 +262,7 @@
           orgs[org] = { count, gkgIDs: [gkgID] };
         }
       });
-      const labels = Object.keys(orgs).sort((a, b) => orgs[b].count - orgs[a].count).slice(0, 10);
+      const labels = Object.keys(orgs).sort((a, b) => orgs[b].count - orgs[a].count);
       const counts = labels.map(label => orgs[label].count);
       return { labels, counts, orgs };
     }
@@ -274,7 +274,7 @@
         id: row.c[4].v,
         image: row.c[5].v,
         gkgID: row.c[0].v
-      })).sort((a, b) => b.id.localeCompare(a.id)).slice(0, 10);
+      })).sort((a, b) => b.id.localeCompare(a.id));
     }
 
     function processLocationsData(data) {
@@ -329,7 +329,8 @@
           }
         };
       }
-
+      console.log("orgsData", orgsData)
+      console.log("filtered orgsData", filterRowsByGkgIds(orgsData))
       // Process each dataset using the helper function
       const filteredData = {
         tone: processToneData(filterRowsByGkgIds(toneData)),
@@ -363,7 +364,7 @@
           // console.log(globalGkgIds);
 
           const filteredData = filterDataByGkgIds(globalGkgIds, toneData, themesData, documentsData, personsData, locationsData, orgsData);
-          // console.log('filteredData:',filteredData);
+          console.log('filteredData:',filteredData);
           renderCharts(filteredData, toneData, themesData, documentsData, personsData, locationsData, orgsData);
         } else {
           console.error(`No data found for label: ${Label}`);
@@ -432,10 +433,10 @@
   themeChart = new Chart(themeCtx, {
     type: 'bar',
     data: {
-      labels: data.themes.labels,
+      labels: data.themes.labels.slice(0,9),
       datasets: [{
         label: 'Article Count',
-        data: data.themes.counts,
+        data: data.themes.counts.slice(0,9),
         backgroundColor: 'rgba(153, 102, 255, 0.2)',
         borderColor: 'rgba(153, 102, 255, 1)',
         borderWidth: 1
@@ -457,10 +458,10 @@
   personsChart = new Chart(personsCtx, {
     type: 'bar',
     data: {
-      labels: data.persons.labels,
+      labels: data.persons.labels.slice(0,9),
       datasets: [{
         label: 'Article Count',
-        data: data.persons.counts,
+        data: data.persons.counts.slice(0,9),
         backgroundColor: 'rgba(255, 159, 64, 0.2)',
         borderColor: 'rgba(255, 159, 64, 1)',
         borderWidth: 1
@@ -482,10 +483,10 @@
   orgsChart = new Chart(orgsCtx, {
     type: 'bar',
     data: {
-      labels: data.orgs.labels,
+      labels: data.orgs.labels.slice(0,9),
       datasets: [{
         label: 'Article Count',
-        data: data.orgs.counts,
+        data: data.orgs.counts.slice(0,9),
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
         borderColor: 'rgba(255, 99, 132, 1)',
         borderWidth: 1
@@ -503,34 +504,41 @@
   });
 
   const docThumbnailsDiv = document.getElementById('docThumbnails');
-  docThumbnailsDiv.innerHTML = ''; // Clear previous thumbnails
-  // const docsData = processDocsData(data.documents);
-  const seenImages = new Set();
+docThumbnailsDiv.innerHTML = ''; // Clear previous thumbnails
 
-  data.documents.forEach(doc => {
-    if (seenImages.has(doc.image)) {
-      return;
-    }
+// Shuffle the array of documents to get a random selection
+const shuffledDocuments = data.documents.sort(() => 0.5 - Math.random());
 
-    seenImages.add(doc.image);
+// Take the first 10 documents from the shuffled array
+const selectedDocuments = shuffledDocuments.slice(0, 10);
 
-    const div = document.createElement('div');
+const seenImages = new Set();
 
-    const img = document.createElement('img');
-    img.src = doc.image;
-    img.alt = 'Document Image';
-    img.onerror = function() {
-      div.remove();
-    };
+selectedDocuments.forEach(doc => {
+  if (seenImages.has(doc.image)) {
+    return;
+  }
 
-    const a = document.createElement('a');
-    a.href = doc.id;
-    a.target = '_blank';
-    a.appendChild(img);
+  seenImages.add(doc.image);
 
-    div.appendChild(a);
-    docThumbnailsDiv.appendChild(div);
-  });
+  const div = document.createElement('div');
+
+  const img = document.createElement('img');
+  img.src = doc.image;
+  img.alt = 'Document Image';
+  img.onerror = function() {
+    div.remove();
+  };
+
+  const a = document.createElement('a');
+  a.href = doc.id;
+  a.target = '_blank';
+  a.appendChild(img);
+
+  div.appendChild(a);
+  docThumbnailsDiv.appendChild(div);
+});
+
 
   // Initialize the map only if it's not already initialized
   if (!mappy) {
