@@ -281,50 +281,34 @@
     let globalGkgIds = []; // Global variable to store selected GKG IDs
     let toneChart, themeChart, personsChart, orgsChart, mappy; // Declare variables to store chart instances
 
-    function filterDataByGkgIds(data, gkgIds) {
-      console.log('data:', data);
 
-      // Ensure that data.themes and other properties exist before trying to access them
-      const filteredThemes = data.themes && data.themes.table ? {
-        ...data.themes,
-        table: {
-          ...data.themes.table,
-          rows: data.themes.table.rows.filter(row => gkgIds.includes(row.c[0].v))
-        }
-      } : data.themes;
+    function filterDataByGkgIds(gkgIds, toneData, themesData, documentsData, personsData, locationsData, orgsData) {
+      // Helper function to filter rows based on GKG IDs
+      function filterRowsByGkgIds(data) {
+        if (!data || !data.table || !data.table.rows) return data;
+        return {
+          ...data,
+          table: {
+            ...data.table,
+            rows: data.table.rows.filter(row => gkgIds.includes(row.c[0].v))
+          }
+        };
+      }
 
-      const filteredPersons = data.persons && data.persons.table ? {
-        ...data.persons,
-        table: {
-          ...data.persons.table,
-          rows: data.persons.table.rows.filter(row => gkgIds.includes(row.c[0].v))
-        }
-      } : data.persons;
-
-      const filteredOrgs = data.orgs && data.orgs.table ? {
-        ...data.orgs,
-        table: {
-          ...data.orgs.table,
-          rows: data.orgs.table.rows.filter(row => gkgIds.includes(row.c[0].v))
-        }
-      } : data.orgs;
-
-      const filteredDocs = data.documents || [];
-      const filteredLocs = data.locations || [];
-
-      return {
-        tone: { ...data.tone }, // Assuming tone is not filtered by GKG ID
-        themes: filteredThemes,
-        persons: filteredPersons,
-        orgs: filteredOrgs,
-        documents: filteredDocs,
-        locations: filteredLocs
+      // Process each dataset using the helper function
+      const filteredData = {
+        tone: processToneData(filterRowsByGkgIds(toneData)),
+        themes: processThemesData(filterRowsByGkgIds(themesData)),
+        documents: processDocsData(filterRowsByGkgIds(documentsData)),
+        persons: processPersonsData(filterRowsByGkgIds(personsData)),
+        locations: processLocationsData(filterRowsByGkgIds(locationsData)),
+        orgs: processOrgsData(filterRowsByGkgIds(orgsData))
       };
+      console.log(toneData.table)
+      return filteredData;
     }
 
-
-
-    function handleChartClick(event, elements, chartData, chartType, data) {
+    function handleChartClick(event, elements, chartData, chartType, data, toneData, themesData, documentsData, personsData, locationsData) {
       console.log('Event:', event);
       console.log('Elements:', elements);
       console.log('Chart Data:', chartData);
@@ -341,18 +325,18 @@
 
           const selectedGkgIds = chartData[Label].gkgIDs;
           globalGkgIds = selectedGkgIds;
-          console.log(globalGkgIds);
+          // console.log(globalGkgIds);
 
-          const filteredData = filterDataByGkgIds(data, globalGkgIds);
-          console.log(filteredData);
-          renderCharts(filteredData);
+          const filteredData = filterDataByGkgIds(globalGkgIds, toneData, themesData, documentsData, personsData, locationsData);
+          console.log('filteredData:',filteredData);
+          renderCharts(filteredData, toneData, themesData, documentsData, personsData, locationsData);
         } else {
           console.error(`No data found for label: ${Label}`);
         }
       }
     }
 
-    function renderCharts(data) {
+    function renderCharts(data, toneData, themesData, documentsData, personsData, locationsData) {
       if (toneChart) toneChart.destroy();
       if (themeChart) themeChart.destroy();
       if (personsChart) personsChart.destroy();
@@ -429,7 +413,7 @@
           beginAtZero: true
         }
       },
-      onClick: (event, elements) => handleChartClick(event, elements, data.themes.themes, 'themes', data)
+      onClick: (event, elements) => handleChartClick(event, elements, data.themes.themes, 'themes', data, toneData, themesData, documentsData, personsData, locationsData)
     }
   });
 
@@ -454,7 +438,7 @@
           beginAtZero: true
         }
       },
-      onClick: (event, elements) => handleChartClick(event, elements, data.persons.persons, 'persons', data)
+      onClick: (event, elements) => handleChartClick(event, elements, data.persons.persons, 'persons', data, toneData, themesData, documentsData, personsData, locationsData)
     }
   });
 
@@ -479,7 +463,7 @@
           beginAtZero: true
         }
       },
-      onClick: (event, elements) => handleChartClick(event, elements, data.orgs.orgs, 'orgs', data)
+      onClick: (event, elements) => handleChartClick(event, elements, data.orgs.orgs, 'orgs', data, toneData, themesData, documentsData, personsData, locationsData)
     }
   });
 
@@ -542,6 +526,12 @@ async function initialize() {
     fetchSheetData(sheets.countryData),
     fetchSheetData(sheets.orgsData)
   ]);
+  console.log(toneData);
+  console.log(themesData);
+  console.log(documentsData);
+  console.log(personsData);
+  console.log(locationsData);
+  console.log(orgsData);
 // get only fields i need broken out into labels, counts, and the raw data piece
   data = {
     tone: processToneData(toneData),
@@ -553,7 +543,7 @@ async function initialize() {
   };
   console.log('initial data',data)
 
-  renderCharts(data);
+  renderCharts(data, toneData, themesData, documentsData, personsData, locationsData);
 }
 
 initialize();
