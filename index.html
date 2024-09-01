@@ -363,8 +363,14 @@ function handleChartClick(event, elements, chartData, chartType) {
       selections[Label] = chartData[Label].gkgIDs;
       console.log("selections", selections);
       }
+      const flatList = Object.values(selections).flat() // flatten arrays
+      const count = {};
+      flatList.forEach(item => {
+        count[item] = (count[item] || 0) + 1;
+      });
+      globalGkgIds = Object.keys(count).filter(item => count[item] === Object.values(selections).length);
 
-      globalGkgIds = Array.from(new Set(Object.values(selections).flat()));
+      // globalGkgIds = Array.from(new Set(Object.values(selections).flat()));
       console.log("globalGkgIds:",globalGkgIds)
       if (globalGkgIds.length > 0) selectedRenderData = filterDataByGkgIds(globalGkgIds);
       renderCharts();
@@ -523,40 +529,43 @@ function handleChartClick(event, elements, chartData, chartType) {
   });
 
   const docThumbnailsDiv = document.getElementById('docThumbnails');
-  docThumbnailsDiv.innerHTML = ''; // Clear previous thumbnails
+docThumbnailsDiv.innerHTML = ''; // Clear previous thumbnails
 
-  // Shuffle the array of documents to get a random selection
-  const shuffledDocuments = renderData.documents.sort(() => 0.5 - Math.random());
+const seenImages = new Set();
+const selectedDocuments = [];
 
-  // Take the first 10 documents from the shuffled array
-  const selectedDocuments = shuffledDocuments.slice(0, 10);
+// Shuffle the array of documents to get a random selection
+const shuffledDocuments = renderData.documents.sort(() => 0.5 - Math.random());
 
-  const seenImages = new Set();
-
-  selectedDocuments.forEach(doc => {
-    if (seenImages.has(doc.image)) {
-      return;
+// Collect unique documents up to 10
+for (const doc of shuffledDocuments) {
+  if (!seenImages.has(doc.image)) {
+    seenImages.add(doc.image);
+    selectedDocuments.push(doc);
+    if (selectedDocuments.length >= 10) {
+      break;
+    }
   }
+}
 
-  seenImages.add(doc.image);
+// Log selected documents for debugging
+console.log('Selected documents:', selectedDocuments);
 
+// Create and append image elements
+selectedDocuments.forEach(doc => {
   const div = document.createElement('div');
-
   const img = document.createElement('img');
   img.src = doc.image;
   img.alt = 'Document Image';
   img.onerror = function() {
-    div.remove();
+    div.remove(); // Remove broken images
   };
 
-  const a = document.createElement('a');
-  a.href = doc.id;
-  a.target = '_blank';
-  a.appendChild(img);
-
-  div.appendChild(a);
+  div.appendChild(img);
   docThumbnailsDiv.appendChild(div);
 });
+
+
 
 
   // Initialize the map only if it's not already initialized
