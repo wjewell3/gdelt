@@ -582,7 +582,7 @@ async function initialize() {
   // Show loading bar
   const loadingBar = document.getElementById('loadingBar');
   loadingBar.style.width = '0%'; // Reset the loading bar
-
+  selections = {};
   try {
     // Start loading data
     loadingBar.style.width = '20%';
@@ -635,8 +635,7 @@ initialize();
 
 document.getElementById('resetButton').addEventListener('click', async function() {
   // Call the initialize function when the reset button is clicked
-  selectedRenderData = {};
-  await renderCharts();
+  initialize();
 });
 
   </script>
