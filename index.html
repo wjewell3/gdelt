@@ -63,11 +63,21 @@
       width: 100%;
     }
       /* Media query to hide chart-row on smaller screens */
-    @media only screen and (max-width: 768px) {
-      .chart-row {
-        display: none;
-      }
+      @media only screen and (max-width: 768px) {
+    .chart-row {
+      flex-direction: column;
     }
+
+    .chart-row .chart-container {
+      margin-right: 0;
+      margin-bottom: 20px; /* Add spacing between stacked elements */
+      width: 100%; /* Make each chart take full width */
+    }
+
+    .chart-row .chart-container:last-child {
+      margin-bottom: 0; /* Remove bottom margin from the last container */
+    }
+  }
   </style>
 </head>
 <body>
