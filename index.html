@@ -111,6 +111,12 @@
 
 
   <script>
+    let selections = {}; // when you click on a viz, this will store what was clicked and associated gkgIds
+    let globalGkgIds = []; // Global variable to store selected GKG IDs
+    let toneChart, themeChart, personsChart, orgsChart, mapChart; // chart instances
+    let filteredData = {};
+    let renderData = {};
+    let selectedRenderData = {};
     const sheets = {
       toneData: 'https://docs.google.com/spreadsheets/d/1Ct9OJZXJFgPXS0A1_TAstrHR4AIxyhegQDH0-gODP9k/edit?usp=drive_link/edit?gid=0#gid=0',
       themesData: 'https://docs.google.com/spreadsheets/d/12OWbeM-QywGaHxAs3xVSIkmdQOKLva2nFLxkLrMeaTg/edit?usp=drive_link/edit?gid=0#gid=0',
@@ -312,94 +318,101 @@
       });
     }
 
-
-    let globalGkgIds = []; // Global variable to store selected GKG IDs
-    let toneChart, themeChart, personsChart, orgsChart, mappy; // Declare variables to store chart instances
-
-
-    function filterDataByGkgIds(gkgIds, toneData, themesData, documentsData, personsData, locationsData, orgsData) {
+    function filterDataByGkgIds(gkgIds) {
       // Helper function to filter rows based on GKG IDs
-      function filterRowsByGkgIds(data) {
-        if (!data || !data.table || !data.table.rows) return data;
+      function filterRowsByGkgIds(renderData) {
+        if (!renderData || !renderData.table || !renderData.table.rows) return renderData;
         return {
-          ...data,
+          ...renderData,
           table: {
-            ...data.table,
-            rows: data.table.rows.filter(row => gkgIds.includes(row.c[0].v))
+            ...renderData.table,
+            rows: renderData.table.rows.filter(row => gkgIds.includes(row.c[0].v))
           }
         };
-      }
-      console.log("orgsData", orgsData)
-      console.log("filtered orgsData", filterRowsByGkgIds(orgsData))
+      };
       // Process each dataset using the helper function
-      const filteredData = {
-        tone: processToneData(filterRowsByGkgIds(toneData)),
-        themes: processThemesData(filterRowsByGkgIds(themesData)),
-        documents: processDocsData(filterRowsByGkgIds(documentsData)),
-        persons: processPersonsData(filterRowsByGkgIds(personsData)),
-        locations: processLocationsData(filterRowsByGkgIds(locationsData)),
-        orgs: processOrgsData(filterRowsByGkgIds(orgsData))
+      filteredData = {
+        tone: processToneData(filterRowsByGkgIds(initialSheetData.tone)),
+        themes: processThemesData(filterRowsByGkgIds(initialSheetData.themes)),
+        documents: processDocsData(filterRowsByGkgIds(initialSheetData.documents)),
+        persons: processPersonsData(filterRowsByGkgIds(initialSheetData.persons)),
+        locations: processLocationsData(filterRowsByGkgIds(initialSheetData.locations)),
+        orgs: processOrgsData(filterRowsByGkgIds(initialSheetData.orgs))
       };
       // console.log(toneData.table)
       return filteredData;
     }
 
-    function handleChartClick(event, elements, chartData, chartType, data, toneData, themesData, documentsData, personsData, locationsData, orgsData) {
-      console.log('Event:', event);
-      console.log('Elements:', elements);
-      console.log('Chart Data:', chartData);
-      console.log('data',data);
 
-      // console.log('chartData which should match data.themes.themes:',chartData);
-      if (elements.length > 0) {
-        const index = elements[0].index;
-        const Label = event.chart.data.labels[index];
+function handleChartClick(event, elements, chartData, chartType) {
+  console.log('HandleChartClick...')
+  console.log('Event:', event);
+  console.log('Elements:', elements);
+  console.log('Chart Data:', chartData);
 
-        if (chartData[Label]) {
-          // console.log('Clicked on:',Label);
-          // console.log(`chartData[Label] : ${chartData[Label]}`);
-
-          const selectedGkgIds = chartData[Label].gkgIDs;
-          globalGkgIds = selectedGkgIds;
-          // console.log(globalGkgIds);
-
-          const filteredData = filterDataByGkgIds(globalGkgIds, toneData, themesData, documentsData, personsData, locationsData, orgsData);
-          console.log('filteredData:',filteredData);
-          renderCharts(filteredData, toneData, themesData, documentsData, personsData, locationsData, orgsData);
-        } else {
-          console.error(`No data found for label: ${Label}`);
-        }
+  if (elements.length > 0) {
+    const index = elements[0].index;
+    const Label = event.chart.data.labels[index];
+    if (chartData[Label]) {
+      console.log("Label: ",Label);
+      if (selections[Label]) {
+        console.log("deleting selections label", selections[Label]);
+        delete selections[Label];
+      } else {
+        console.log("assigning selections label", Label);
+      selections[Label] = chartData[Label].gkgIDs;
+      console.log("selections", selections);
       }
+
+      globalGkgIds = Array.from(new Set(Object.values(selections).flat()));
+      console.log("globalGkgIds:",globalGkgIds)
+      if (globalGkgIds.length > 0) selectedRenderData = filterDataByGkgIds(globalGkgIds);
+      renderCharts();
+    } else {
+      console.error(`No data found for label: ${Label}`);
     }
 
-    function renderCharts(data, toneData, themesData, documentsData, personsData, locationsData, orgsData) {
+}
+}
+
+
+    function renderCharts() {
       if (toneChart) toneChart.destroy();
       if (themeChart) themeChart.destroy();
       if (personsChart) personsChart.destroy();
       if (orgsChart) orgsChart.destroy();
         // Check if the map already exists, and if so, remove it
-      if (mappy) {
-        mappy.remove();
-        mappy = null;
+      if (mapChart) {
+        mapChart.remove();
+        mapChart = null;
+      }
+      if (Object.keys(selections).length === 0) { // if selections is empty, load initial data
+        renderData = initialRenderData;
+        console.log("loading initial data", renderData);
+      } else {
+        renderData = selectedRenderData;
+        console.log("loading selected data", renderData);
       }
       const toneCtx = document.getElementById('toneHistogram').getContext('2d');
       // const toneData = processToneData(data.tone);
-      if (data.tone.toneBins.length === 0) {
+      if (renderData.tone.toneBins.length === 0) {
         document.getElementById('toneHistogram').style.display = 'none';
       } else {
         toneChart = new Chart(toneCtx, {
           type: 'bar',
           data: {
-            labels: data.tone.labels,
+            labels: renderData.tone.labels,
             datasets: [{
               label: 'Tone Count',
-              data: data.tone.toneBins,
+              data: renderData.tone.toneBins,
               backgroundColor: 'rgba(75, 192, 192, 0.2)',
               borderColor: 'rgba(75, 192, 192, 1)',
               borderWidth: 1
             }]
           },
           options: {
+            responsive: true,
+            maintainAspectRatio: false, // Allow the chart to fill its container
             scales: {
               x: {
                 title: {
@@ -408,7 +421,7 @@
                 },
                 ticks: {
                   callback: function(value, index) {
-                    return data.tone.labels[index];
+                    return renderData.tone.labels[index];
                   }
                 }
               },
@@ -424,7 +437,7 @@
 
           }
         });
-        document.getElementById('avgOverallTone').textContent = `Average Overall Tone: ${data.tone.avgTone.toFixed(2)}`;
+        document.getElementById('avgOverallTone').textContent = `Average Overall Tone: ${renderData.tone.avgTone.toFixed(2)}`;
       }
 
   const themeCtx = document.getElementById('themeBarChart').getContext('2d');
@@ -433,23 +446,25 @@
   themeChart = new Chart(themeCtx, {
     type: 'bar',
     data: {
-      labels: data.themes.labels.slice(0,9),
+      labels: renderData.themes.labels.slice(0,9),
       datasets: [{
         label: 'Article Count',
-        data: data.themes.counts.slice(0,9),
+        data: renderData.themes.counts.slice(0,9),
         backgroundColor: 'rgba(153, 102, 255, 0.2)',
         borderColor: 'rgba(153, 102, 255, 1)',
         borderWidth: 1
       }]
     },
     options: {
+      responsive: true,
+      maintainAspectRatio: false, // Allow the chart to fill its container
       indexAxis: 'y',
       scales: {
         x: {
           beginAtZero: true
         }
       },
-      onClick: (event, elements) => handleChartClick(event, elements, data.themes.themes, 'themes', data, toneData, themesData, documentsData, personsData, locationsData, orgsData)
+      onClick: (event, elements) => handleChartClick(event, elements, renderData.themes.themes, 'themes')
     }
   });
 
@@ -458,23 +473,25 @@
   personsChart = new Chart(personsCtx, {
     type: 'bar',
     data: {
-      labels: data.persons.labels.slice(0,9),
+      labels: renderData.persons.labels.slice(0,9),
       datasets: [{
         label: 'Article Count',
-        data: data.persons.counts.slice(0,9),
+        data: renderData.persons.counts.slice(0,9),
         backgroundColor: 'rgba(255, 159, 64, 0.2)',
         borderColor: 'rgba(255, 159, 64, 1)',
         borderWidth: 1
       }]
     },
     options: {
+      responsive: true,
+      maintainAspectRatio: false, // Allow the chart to fill its container
       indexAxis: 'y',
       scales: {
         x: {
           beginAtZero: true
         }
       },
-      onClick: (event, elements) => handleChartClick(event, elements, data.persons.persons, 'persons', data, toneData, themesData, documentsData, personsData, locationsData, orgsData)
+      onClick: (event, elements) => handleChartClick(event, elements, renderData.persons.persons, 'persons')
     }
   });
 
@@ -483,40 +500,42 @@
   orgsChart = new Chart(orgsCtx, {
     type: 'bar',
     data: {
-      labels: data.orgs.labels.slice(0,9),
+      labels: renderData.orgs.labels.slice(0,9),
       datasets: [{
         label: 'Article Count',
-        data: data.orgs.counts.slice(0,9),
+        data: renderData.orgs.counts.slice(0,9),
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
         borderColor: 'rgba(255, 99, 132, 1)',
         borderWidth: 1
       }]
     },
     options: {
+      responsive: true,
+      maintainAspectRatio: false, // Allow the chart to fill its container
       indexAxis: 'y',
       scales: {
         x: {
           beginAtZero: true
         }
       },
-      onClick: (event, elements) => handleChartClick(event, elements, data.orgs.orgs, 'orgs', data, toneData, themesData, documentsData, personsData, locationsData, orgsData)
+      onClick: (event, elements) => handleChartClick(event, elements, renderData.orgs.orgs, 'orgs')
     }
   });
 
   const docThumbnailsDiv = document.getElementById('docThumbnails');
-docThumbnailsDiv.innerHTML = ''; // Clear previous thumbnails
+  docThumbnailsDiv.innerHTML = ''; // Clear previous thumbnails
 
-// Shuffle the array of documents to get a random selection
-const shuffledDocuments = data.documents.sort(() => 0.5 - Math.random());
+  // Shuffle the array of documents to get a random selection
+  const shuffledDocuments = renderData.documents.sort(() => 0.5 - Math.random());
 
-// Take the first 10 documents from the shuffled array
-const selectedDocuments = shuffledDocuments.slice(0, 10);
+  // Take the first 10 documents from the shuffled array
+  const selectedDocuments = shuffledDocuments.slice(0, 10);
 
-const seenImages = new Set();
+  const seenImages = new Set();
 
-selectedDocuments.forEach(doc => {
-  if (seenImages.has(doc.image)) {
-    return;
+  selectedDocuments.forEach(doc => {
+    if (seenImages.has(doc.image)) {
+      return;
   }
 
   seenImages.add(doc.image);
@@ -541,21 +560,21 @@ selectedDocuments.forEach(doc => {
 
 
   // Initialize the map only if it's not already initialized
-  if (!mappy) {
-    mappy = L.map('countryMap').setView([20, 0], 2);
+  if (!mapChart) {
+    mapChart = L.map('countryMap').setView([20, 0], 2);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(mappy);
+    }).addTo(mapChart);
   }
 
   // const locationsData = processLocationsData(data.locations);
-  data.locations.forEach(location => {
+  renderData.locations.forEach(location => {
     L.circle([location.lat, location.lng], {
       color: 'blue',
       fillColor: '#30f',
       fillOpacity: 0.5,
       radius: location.count * 1000
-    }).addTo(mappy);
+    }).addTo(mapChart);
   });
 }
 
@@ -579,18 +598,25 @@ async function initialize() {
     loadingBar.style.width = '95%';
     const orgsData = await fetchSheetData(sheets.orgsData);
 
-    // Process the data
-    data = {
-      tone: processToneData(toneData),
-      themes: processThemesData(themesData),
-      documents: processDocsData(documentsData),
-      persons: processPersonsData(personsData),
-      locations: processLocationsData(locationsData),
-      orgs: processOrgsData(orgsData)
+    initialSheetData = {
+      tone: toneData, 
+      themes: themesData, 
+      documents: documentsData, 
+      persons: personsData, 
+      locations: locationsData, 
+      orgs: orgsData
     };
 
+    initialRenderData = {
+      tone: processToneData(initialSheetData.tone),
+      themes: processThemesData(initialSheetData.themes),
+      documents: processDocsData(initialSheetData.documents),
+      persons: processPersonsData(initialSheetData.persons),
+      locations: processLocationsData(initialSheetData.locations),
+      orgs: processOrgsData(initialSheetData.orgs)
+    };
     // Render charts with the processed data
-    renderCharts(data, toneData, themesData, documentsData, personsData, locationsData, orgsData);
+    renderCharts();
 
     // Hide loading bar
     loadingBar.style.width = '100%';
@@ -609,7 +635,8 @@ initialize();
 
 document.getElementById('resetButton').addEventListener('click', async function() {
   // Call the initialize function when the reset button is clicked
-  await initialize();
+  selectedRenderData = {};
+  await renderCharts();
 });
 
   </script>
