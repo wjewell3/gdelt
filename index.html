@@ -137,7 +137,7 @@
   <script>
     let selections = {}; // when you click on a viz, this will store what was clicked and associated gkgIds
     let globalGkgIds = []; // Global variable to store selected GKG IDs
-    let toneChart, themeChart, personsChart, orgsChart, mapChart; // chart instances
+    let toneChart, themeChart, personsChart, orgsChart, mapChart, numElementsToDisplay; // chart instances
     let filteredData = {};
     let renderData = {};
     let selectedRenderData = {};
@@ -151,8 +151,6 @@
     };
 
     const dataUrl = 'https://us-central1-gdelt-433201.cloudfunctions.net/function-3';
-    let pollingAttempts = 0;
-    const maxPollingAttempts = 1;
 
     async function fetchData() {
       try {
@@ -164,17 +162,14 @@
       }
     }
 
-    async function checkForUpdates() {
-      await fetchData();
-
-      if (pollingAttempts < maxPollingAttempts) {
-        pollingAttempts++;
-        setTimeout(checkForUpdates, 30000); // Poll every 30 seconds
-      }
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
-      checkForUpdates();
+      // Fetch data immediately when the page loads
+      fetchData();
+
+      // Set a timeout to reload the page after 30 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 30000); // Reload after 30 seconds
     });
 
     async function fetchSheetData(sheetUrl) {
@@ -407,6 +402,9 @@ function handleChartClick(event, elements, chartData, chartType) {
 
 
     function renderCharts() {
+      const isSmallScreen = window.matchMedia("(max-width: 768px)").matches;
+      // Define the number of elements to slice based on screen size
+      numElementsToDisplay = isSmallScreen ? 5 : 10;
       if (toneChart) toneChart.destroy();
       if (themeChart) themeChart.destroy();
       if (personsChart) personsChart.destroy();
@@ -476,10 +474,10 @@ function handleChartClick(event, elements, chartData, chartType) {
   themeChart = new Chart(themeCtx, {
     type: 'bar',
     data: {
-      labels: renderData.themes.labels.slice(0,9),
+      labels: renderData.themes.labels.slice(0,numElementsToDisplay),
       datasets: [{
         label: 'Article Count',
-        data: renderData.themes.counts.slice(0,9),
+        data: renderData.themes.counts.slice(0,numElementsToDisplay),
         backgroundColor: 'rgba(153, 102, 255, 0.2)',
         borderColor: 'rgba(153, 102, 255, 1)',
         borderWidth: 1
@@ -503,10 +501,10 @@ function handleChartClick(event, elements, chartData, chartType) {
   personsChart = new Chart(personsCtx, {
     type: 'bar',
     data: {
-      labels: renderData.persons.labels.slice(0,9),
+      labels: renderData.persons.labels.slice(0,numElementsToDisplay),
       datasets: [{
         label: 'Article Count',
-        data: renderData.persons.counts.slice(0,9),
+        data: renderData.persons.counts.slice(0,numElementsToDisplay),
         backgroundColor: 'rgba(255, 159, 64, 0.2)',
         borderColor: 'rgba(255, 159, 64, 1)',
         borderWidth: 1
@@ -530,10 +528,10 @@ function handleChartClick(event, elements, chartData, chartType) {
   orgsChart = new Chart(orgsCtx, {
     type: 'bar',
     data: {
-      labels: renderData.orgs.labels.slice(0,9),
+      labels: renderData.orgs.labels.slice(0,numElementsToDisplay),
       datasets: [{
         label: 'Article Count',
-        data: renderData.orgs.counts.slice(0,9),
+        data: renderData.orgs.counts.slice(0,numElementsToDisplay),
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
         borderColor: 'rgba(255, 99, 132, 1)',
         borderWidth: 1
