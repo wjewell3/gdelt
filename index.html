@@ -152,26 +152,6 @@
 
     const dataUrl = 'https://us-central1-gdelt-433201.cloudfunctions.net/function-3';
 
-    async function fetchData() {
-      try {
-        // Use 'no-cors' mode since you don't care about the response
-        await fetch(dataUrl, { mode: 'no-cors' });
-        console.log('Request made to:', dataUrl);
-      } catch (error) {
-        console.error('Failed to make request:', error);
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      // Fetch data immediately when the page loads
-      fetchData();
-
-      // Set a timeout to reload the page after 30 seconds
-      setTimeout(() => {
-        window.location.reload();
-      }, 30000); // Reload after 30 seconds
-    });
-
     async function fetchSheetData(sheetUrl) {
       try {
         const sheetId = sheetUrl.split('/')[5];
@@ -657,6 +637,7 @@ async function initialize() {
     };
     // Render charts with the processed data
     renderCharts();
+    // Fetch data immediately when the page loads
 
     // Hide loading bar
     loadingBar.style.width = '100%';
@@ -672,6 +653,39 @@ async function initialize() {
 }
 
 initialize();
+
+// Function to check if the reload flag is set in session storage
+function hasPageReloaded() {
+  return sessionStorage.getItem('pageReloaded') === 'true';
+}
+
+// Function to set the reload flag in session storage
+function setPageReloaded() {
+  sessionStorage.setItem('pageReloaded', 'true');
+}
+
+async function fetchData(reloaded) {
+  if (!reloaded) {
+      try {
+        // Use 'no-cors' mode since you don't care about the response
+        await fetch(dataUrl, { mode: 'no-cors' });
+        console.log('Request made to:', dataUrl);
+      } catch (error) {
+        console.error('Failed to make request:', error);
+      }
+    }}
+
+if (!hasPageReloaded()) {
+  fetchData(); // Request ETL
+
+  // Set a timeout to reload the page after 30 seconds
+  setTimeout(() => {
+    setPageReloaded(); // Set the flag before reloading
+    window.location.reload();
+  }, 30000); // Reload after 30 seconds
+  } else {
+  console.log('Page has already been reloaded once.');
+}
 
 document.getElementById('resetButton').addEventListener('click', async function() {
   // Call the initialize function when the reset button is clicked
