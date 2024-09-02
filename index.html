@@ -564,7 +564,7 @@ function handleChartClick(event, elements, chartData, chartType) {
     if (!seenImages.has(doc.image)) {
       seenImages.add(doc.image);
       selectedDocuments.push(doc);
-      if (selectedDocuments.length >= 10) {
+      if (selectedDocuments.length >= numElementsToDisplay) {
         break;
       }
     }
