@@ -720,17 +720,17 @@ async function fetchData(reloaded) {
       }
     }}
 
-if (!hasPageReloaded()) {
-  fetchData(); // Request ETL
+// if (!hasPageReloaded()) {
+//   fetchData(); // Request ETL
 
-  // Set a timeout to reload the page after 30 seconds
-  setTimeout(() => {
-    setPageReloaded(); // Set the flag before reloading
-    window.location.reload();
-  }, 30000); // Reload after 30 seconds
-  } else {
-  console.log('Page has already been reloaded once.');
-}
+//   // Set a timeout to reload the page after 30 seconds
+//   setTimeout(() => {
+//     setPageReloaded(); // Set the flag before reloading
+//     window.location.reload();
+//   }, 30000); // Reload after 30 seconds
+//   } else {
+//   console.log('Page has already been reloaded once.');
+// }
 
 document.getElementById('resetButton').addEventListener('click', async function() {
   // Call the initialize function when the reset button is clicked
