@@ -604,10 +604,12 @@ async function initialize() {
   loadingBar.style.width = '0%'; // Reset the loading bar
   selections = {};
   try {
-    // Start loading data
     loadingBar.style.width = '20%';
-    const toneData = await fetchSheetData(sheets.toneData);
+    fetchData(); // Request ETL
+    // Start loading data
     loadingBar.style.width = '40%';
+    const toneData = await fetchSheetData(sheets.toneData);
+    loadingBar.style.width = '50%';
     const themesData = await fetchSheetData(sheets.themesData);
     loadingBar.style.width = '60%';
     const documentsData = await fetchSheetData(sheets.documentData);
@@ -721,7 +723,7 @@ async function fetchData(reloaded) {
     }}
 
 // if (!hasPageReloaded()) {
-//   fetchData(); // Request ETL
+  fetchData(); // Request ETL
 
 //   // Set a timeout to reload the page after 30 seconds
 //   setTimeout(() => {
