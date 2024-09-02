@@ -553,41 +553,50 @@ function handleChartClick(event, elements, chartData, chartType) {
   });
 
   const docThumbnailsDiv = document.getElementById('docThumbnails');
-docThumbnailsDiv.innerHTML = ''; // Clear previous thumbnails
+  docThumbnailsDiv.innerHTML = ''; // Clear previous thumbnails
 
-const seenImages = new Set();
-const selectedDocuments = [];
+  const seenImages = new Set();
+  const selectedDocuments = [];
 
-// Shuffle the array of documents to get a random selection
-const shuffledDocuments = renderData.documents.sort(() => 0.5 - Math.random());
+  // Shuffle the array of documents to get a random selection
+  const shuffledDocuments = renderData.documents.sort(() => 0.5 - Math.random());
 
-// Collect unique documents up to 10
-for (const doc of shuffledDocuments) {
-  if (!seenImages.has(doc.image)) {
-    seenImages.add(doc.image);
-    selectedDocuments.push(doc);
-    if (selectedDocuments.length >= 10) {
-      break;
+  // Collect unique documents up to 10
+  for (const doc of shuffledDocuments) {
+    if (!seenImages.has(doc.image)) {
+      seenImages.add(doc.image);
+      selectedDocuments.push(doc);
+      if (selectedDocuments.length >= 10) {
+        break;
+      }
     }
   }
-}
 
-// Log selected documents for debugging
-console.log('Selected documents:', selectedDocuments);
+  // Log selected documents for debugging
+  console.log('Selected documents:', selectedDocuments);
 
-// Create and append image elements
-selectedDocuments.forEach(doc => {
-  const div = document.createElement('div');
-  const img = document.createElement('img');
-  img.src = doc.image;
-  img.alt = 'Document Image';
-  img.onerror = function() {
-    div.remove(); // Remove broken images
-  };
+  // Create and append image elements wrapped in anchor tags
+  selectedDocuments.forEach(doc => {
+    const div = document.createElement('div');
+    
+    // Create the link element
+    const a = document.createElement('a');
+    a.href = doc.id; 
+    a.target = '_blank';
 
-  div.appendChild(img);
-  docThumbnailsDiv.appendChild(div);
-});
+    const img = document.createElement('img');
+    img.src = doc.image;
+    img.alt = 'Document Image';
+    img.onerror = function() {
+      div.remove(); // Remove broken images
+    };
+
+    // Append image to the link, and link to the div
+    a.appendChild(img);
+    div.appendChild(a);
+    docThumbnailsDiv.appendChild(div);
+  });
+
 
 
 
