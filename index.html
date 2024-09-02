@@ -605,7 +605,8 @@ async function initialize() {
   selections = {};
   try {
     loadingBar.style.width = '20%';
-    fetchData(); // Request ETL
+    await fetch(dataUrl, { mode: 'no-cors' });
+    console.log('Request made to:', dataUrl);
     // Start loading data
     loadingBar.style.width = '40%';
     const toneData = await fetchSheetData(sheets.toneData);
