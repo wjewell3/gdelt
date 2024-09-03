@@ -296,6 +296,15 @@ func fillNa(data [][]string) [][]string {
 	return data
 }
 
+// Helper function to check if a row contains any null values
+func containsNull(row []string) bool {
+	for _, value := range row {
+		if value == "" {
+			return true
+		}
+	}
+	return false
+}
 
 // Function to process and filter the data into different tables (like format_tone, format_col in Python)
 func processAndFilterData(data [][]string) ([][]string, [][]string, [][]string, [][]string, [][]string) {
@@ -310,8 +319,13 @@ func processAndFilterData(data [][]string) ([][]string, [][]string, [][]string, 
 
 	// Process rows and split into respective slices
 	for _, row := range data[1:] { // Skip header row
-		// Process the main table
 		tones := strings.Split(row[15], ",")
+		if containsNull([]string{ // if gdeltMain has any null values, skip row
+			row[0], row[1], row[2], row[3], row[4], row[18], row[15], 
+			tones[0], tones[1], tones[2], tones[3], tones[4], tones[5], tones[6]}) {
+			continue // Skip rows with null values
+		}
+		// Process the main table
 		gdeltMain = append(gdeltMain, []string{
 			row[0], row[1], row[2], row[3], row[4], row[18], row[15], 
 			tones[0], tones[1], tones[2], tones[3], tones[4], tones[5], tones[6]})
@@ -411,8 +425,9 @@ func Gdeltetl() {
 	uploadFuncs := []struct {
 		data     [][]string
 		fileName string
-	}{
-		{dropNa(gdeltMain), "gdelt_main"},
+	}{ 	
+		{data, "gdelt_gkg"},
+		{gdeltMain, "gdelt_main"},
 		{dropDuplicates(fillNa(gdeltLocs)), "gdelt_locs"},
 		{dropDuplicates(gdeltPersons), "gdelt_persons"},
 		{dropDuplicates(gdeltOrgs), "gdelt_orgs"},
