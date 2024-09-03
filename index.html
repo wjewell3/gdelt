@@ -8,179 +8,132 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
+    #loadingBar {
+      transition: width 0.4s ease;
+    }
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-    
-    /* Ensure everything is hidden initially */
-    #content {
-      display: none;
-    }
-
     h1 {
       margin: 20px;
     }
-
     .chart-container {
       margin-bottom: 20px;
       flex: 1;
       display: flex;
-      flex-direction: column;
+      flex-direction: column; /* Use column here to keep header above the visualization */
     }
-
     .chart-wrapper {
       display: flex;
-      flex-direction: row;
+      flex-direction: row; /* Maintain horizontal layout for content */
       align-items: center;
       justify-content: center;
       flex: 1;
     }
-
     #docThumbnails {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
     }
-
     #docThumbnails div {
       margin: 10px;
       text-align: center;
     }
-
     img {
       max-width: 250px;
       max-height: 250px;
       width: auto;
       height: auto;
     }
-
     .chart-container canvas {
       width: 100% !important;
       height: 100% !important;
     }
-
     .chart-row {
       display: flex;
       justify-content: space-between;
       width: 100%;
     }
-
     .chart-row .chart-container {
       margin-right: 10px;
     }
-
     .chart-row .chart-container:last-child {
       margin-right: 0;
     }
-
     #countryMap {
-      height: 400px;
+      height: 400px; /* or any appropriate value */
       width: 100%;
     }
-
     /* Media query for small screens */
     @media only screen and (max-width: 768px) {
       .chart-row {
         flex-direction: column;
       }
-
       .chart-container {
         width: 100%;
         margin-right: 0;
         margin-bottom: 20px;
       }
-
       .chart-container:last-child {
         margin-bottom: 0;
       }
     }
-
-    /* Loading Bar Styles */
-    #loadingBarContainer {
-      width: 100%;
-      background-color: #f3f3f3;
-      height: 20px;
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 1000;
-    }
-
-    #loadingBar {
-      width: 0;
-      height: 100%;
-      background-color: #4caf50;
-    }
-
-    /* Loading Message Styles */
-    .loading-message {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 24px;
-      color: #333;
-      text-align: center;
-      z-index: 999;
-    }
   </style>
 </head>
 <body>
-  <div id="loadingBarContainer">
-    <div id="loadingBar"></div>
+  <h1>GDELT News Dashboard</h1><div id="updatedTimestamp"></div>
+  <div id="loadingBarContainer" style="position: fixed; top: 0; left: 0; width: 100%; height: 5px; background-color: #f3f3f3; z-index: 1000;">
+    <div id="loadingBar" style="width: 0%; height: 100%; background-color: #4caf50;"></div>
   </div>
-  <div id="loadingMessage" class="loading-message">Grabbing latest news... This can take up to 30 seconds... Thank you for your patience ...</div>
+  <button id="resetButton" style="position: absolute; top: 10px; right: 10px; z-index: 1000;">Reset</button>
 
-  <div id="content">
-    <h1>GDELT News Dashboard</h1>
-    <div id="updatedTimestamp"></div>
-    <button id="resetButton" style="position: absolute; top: 10px; right: 10px;">Reset</button>
+  <div class="chart-container">
+    <h2>Articles</h2>
+    <div id="docThumbnails"></div>
+  </div>
 
+  <div class="chart-row">
     <div class="chart-container">
-      <h2>Articles</h2>
-      <div id="docThumbnails"></div>
-    </div>
-
-    <div class="chart-row">
-      <div class="chart-container">
-        <h2>Tone Counts</h2>
-        <div class="chart-wrapper">
-          <canvas id="toneHistogram"></canvas>
-          <div id="avgOverallTone"></div>
-        </div>
-      </div>
-      <div class="chart-container">
-        <h2>Map Counts</h2>
-        <div class="chart-wrapper">
-          <div id="countryMap"></div>
-        </div>
+      <h2>Tone Counts</h2>
+      <div class="chart-wrapper">
+        <canvas id="toneHistogram"></canvas>
+        <div id="avgOverallTone"></div>
       </div>
     </div>
-
-    <div class="chart-row">
-      <div class="chart-container">
-        <h2>Person Counts</h2>
-        <div class="chart-wrapper">
-          <canvas id="personsBarChart"></canvas>
-        </div>
-      </div>
-      <div class="chart-container">
-        <h2>Organization Counts</h2>
-        <div class="chart-wrapper">
-          <canvas id="orgsBarChart"></canvas>
-        </div>
-      </div>
-      <div class="chart-container">
-        <h2>Theme Counts</h2>
-        <div class="chart-wrapper">
-          <canvas id="themeBarChart"></canvas>
-        </div>
+    <div class="chart-container">
+      <h2>Map Counts</h2>
+      <div class="chart-wrapper">
+        <div id="countryMap"></div>
       </div>
     </div>
   </div>
+
+  <div class="chart-row">
+    <div class="chart-container">
+      <h2>Person Counts</h2>
+      <div class="chart-wrapper">
+        <canvas id="personsBarChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-container">
+      <h2>Organization Counts</h2>
+      <div class="chart-wrapper">
+        <canvas id="orgsBarChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-container">
+      <h2>Theme Counts</h2>
+      <div class="chart-wrapper">
+        <canvas id="themeBarChart"></canvas>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
   <script>
     let selections = {}; // when you click on a viz, this will store what was clicked and associated gkgIds
     let globalGkgIds = []; // Global variable to store selected GKG IDs
@@ -646,100 +599,112 @@ function handleChartClick(event, elements, chartData, chartType) {
 }
 
 async function initialize() {
-      const loadingBar = document.getElementById('loadingBar');
-      const loadingMessage = document.getElementById('loadingMessage');
-      const content = document.getElementById('content');
+  // Show loading bar
+  const loadingBar = document.getElementById('loadingBar');
+  loadingBar.style.width = '0%'; // Reset the loading bar
+  loadingBar.style.width = '50%';
+  await fetch(dataUrl, { mode: 'no-cors' });
+  console.log('Request made to:', dataUrl);
+  
 
-      // Show loading bar and message
-      loadingBar.style.width = '0%';
-      loadingMessage.style.display = 'block';
-      content.style.display = 'none'; // Ensure the main content is hidden
+  selections = {};
+  try {
+    
+    await fetch(dataUrl, { mode: 'no-cors' });
+    console.log('Request made to:', dataUrl);
+    // Start loading data
+    loadingBar.style.width = '60%';
+    const toneData = await fetchSheetData(sheets.toneData);
+    loadingBar.style.width = '70%';
+    const themesData = await fetchSheetData(sheets.themesData);
+    loadingBar.style.width = '80%';
+    const documentsData = await fetchSheetData(sheets.documentData);
+    loadingBar.style.width = '85%';
+    const personsData = await fetchSheetData(sheets.personsData);
+    loadingBar.style.width = '90%';
+    const locationsData = await fetchSheetData(sheets.countryData);
+    loadingBar.style.width = '95%';
+    const orgsData = await fetchSheetData(sheets.orgsData);
 
-      try {
-        // Simulate the loading process with data fetching
-        await fetch(dataUrl, { mode: 'no-cors' });
-        console.log('ETL request sent to :', dataUrl);
-        loadingBar.style.width = '20%';
-        const toneData = await fetchSheetData(sheets.toneData);
-        
-        loadingBar.style.width = '40%';
-        const themesData = await fetchSheetData(sheets.themesData);
-        
-        loadingBar.style.width = '60%';
-        const documentsData = await fetchSheetData(sheets.documentData);
-        
-        loadingBar.style.width = '80%';
-        const personsData = await fetchSheetData(sheets.personsData);
-        
-        loadingBar.style.width = '90%';
-        const locationsData = await fetchSheetData(sheets.countryData);
-        
-        loadingBar.style.width = '95%';
-        const orgsData = await fetchSheetData(sheets.orgsData);
+    initialSheetData = {
+      tone: toneData, 
+      themes: themesData, 
+      documents: documentsData, 
+      persons: personsData, 
+      locations: locationsData, 
+      orgs: orgsData
+    };
 
-        // Finalize loading and show the main content
-        initialSheetData = {
-          tone: toneData, 
-          themes: themesData, 
-          documents: documentsData, 
-          persons: personsData, 
-          locations: locationsData, 
-          orgs: orgsData
-        };
+    initialRenderData = {
+      tone: processToneData(initialSheetData.tone),
+      themes: processThemesData(initialSheetData.themes),
+      documents: processDocsData(initialSheetData.documents),
+      persons: processPersonsData(initialSheetData.persons),
+      locations: processLocationsData(initialSheetData.locations),
+      orgs: processOrgsData(initialSheetData.orgs),
+    };  
 
-        initialRenderData = {
-          tone: processToneData(initialSheetData.tone),
-          themes: processThemesData(initialSheetData.themes),
-          documents: processDocsData(initialSheetData.documents),
-          persons: processPersonsData(initialSheetData.persons),
-          locations: processLocationsData(initialSheetData.locations),
-          orgs: processOrgsData(initialSheetData.orgs),
-        };
+    // Call displayUpdatedTime directly after data is fetched
+    displayUpdatedTime();
 
-        // Process the timestamp for the last update
-        const utcTimestamp = initialSheetData.documents.table.rows[1].c[1].v;
+    // Render charts with the processed data
+    renderCharts();
 
-        const year = parseInt(utcTimestamp.substring(0, 4), 10);
-        const month = parseInt(utcTimestamp.substring(4, 6), 10) - 1; 
-        const day = parseInt(utcTimestamp.substring(6, 8), 10);
-        const hour = parseInt(utcTimestamp.substring(8, 10), 10);
-        const minute = parseInt(utcTimestamp.substring(10, 12), 10);
+    // Hide loading bar
+    loadingBar.style.width = '100%';
+    setTimeout(() => {
+      document.getElementById('loadingBarContainer').style.display = 'none';
+    }, 500); // Allow a small delay for the full bar to be visible
 
-        const utcDate = new Date(Date.UTC(year, month, day, hour, minute));
-        const localDate = new Date(utcDate);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    // Hide loading bar if there's an error
+    document.getElementById('loadingBarContainer').style.display = 'none';
+  }
+}
 
-        const options = {
-          year: '2-digit',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        };
+function displayUpdatedTime() {
 
-        const updatedTs = localDate.toLocaleString('en-US', options);
-        document.getElementById('updatedTimestamp').textContent = `Data last updated: ${updatedTs}`;
+  // Parse the timestamp into a Date object
+  const utcTimestamp = initialSheetData.documents.table.rows[1].c[1].v;
+  const year = parseInt(utcTimestamp.substring(0, 4), 10);
+  const month = parseInt(utcTimestamp.substring(4, 6), 10) - 1; // Month is 0-based in JS
+  const day = parseInt(utcTimestamp.substring(6, 8), 10);
+  const hour = parseInt(utcTimestamp.substring(8, 10), 10);
+  const minute = parseInt(utcTimestamp.substring(10, 12), 10);
 
-        renderCharts();
+  // Create the Date object in UTC
+  const utcDate = new Date(Date.UTC(year, month, day, hour, minute));
 
-        // Complete the loading bar and hide loading message
-        loadingBar.style.width = '100%';
+  // Convert to local time
+  const localDate = new Date(utcDate);
 
-        setTimeout(() => {
-          document.getElementById('loadingBarContainer').style.display = 'none';
-          loadingMessage.style.display = 'none';
-          content.style.display = 'block'; // Show the main content
-        }, 500);
+  // Format the local date and time
+  const options = {
+    year: '2-digit',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  };
 
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        document.getElementById('loadingBarContainer').style.display = 'none';
-        loadingMessage.style.display = 'none';
-        alert('Failed to load data. Please try again later.');
-      }
-    }
+  const updatedTs = localDate.toLocaleString('en-US', options);
+  console.log(`Data last updated: ${updatedTs}`);
+  document.getElementById('updatedTimestamp').textContent = `Data last updated: ${updatedTs}`;
+  // Insert the formatted date into the HTML
+  // const updatedTimeElement = document.getElementById('updatedTimestamp');
+  // if (updatedTimeElement) {
+  //   updatedTimeElement.textContent = `Data last updated: ${updatedTs}`;
+  // } else {
+  //   console.error('Element with ID "updatedTimestamp" not found');
+  // }
+}
 
-    initialize();
+// Call initialize function when the DOM is fully loaded
+// document.addEventListener('DOMContentLoaded', () => {
+initialize();
+
 
 document.getElementById('resetButton').addEventListener('click', async function() {
   // Call the initialize function when the reset button is clicked
