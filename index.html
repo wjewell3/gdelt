@@ -84,6 +84,9 @@
   </style>
 </head>
 <body>
+  <div id="loadingScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: white; z-index: 1000; display: flex; align-items: center; justify-content: center;">
+    <h2>Grabbing latest news... This can take up to 30 seconds... Thank you for your patience ...</h2>
+  </div>  
   <h1>GDELT News Dashboard</h1><div id="updatedTimestamp"></div>
   <div id="loadingBarContainer" style="position: fixed; top: 0; left: 0; width: 100%; height: 5px; background-color: #f3f3f3; z-index: 1000;">
     <div id="loadingBar" style="width: 0%; height: 100%; background-color: #4caf50;"></div>
@@ -599,6 +602,8 @@ function handleChartClick(event, elements, chartData, chartType) {
 }
 
 async function initialize() {
+  // Show the loading screen
+  document.getElementById('loadingScreen').style.display = 'flex';
   // Show loading bar
   const loadingBar = document.getElementById('loadingBar');
   loadingBar.style.width = '0%'; // Reset the loading bar
@@ -646,7 +651,8 @@ async function initialize() {
 
     // Call displayUpdatedTime directly after data is fetched
     displayUpdatedTime();
-
+    // Hide the loading screen
+    document.getElementById('loadingScreen').style.display = 'none';
     // Render charts with the processed data
     renderCharts();
 
