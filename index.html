@@ -173,10 +173,10 @@
       }
     }
 
-    function processToneData(data) {
+    function processToneData(data, i) {
   if (!data) return { toneBins: [], avgTone: 0 };
   
-  const rows = data.table.rows.slice(1); // Skip the header row
+  const rows = data.table.rows.slice(i); // Skip the header row
   const toneValues = rows.map(row => parseFloat(row.c[7].v)); // Adjust index if needed
   const avgTone = toneValues.reduce((a, b) => a + b, 0) / toneValues.length;
 
@@ -205,9 +205,9 @@
 }
 
 
-    function processThemesData(data) {
+    function processThemesData(data, i) {
       if (!data) return { labels: [], counts: [], themes: {} };
-      const rows = data.table.rows.slice(1); // Skip the header row
+      const rows = data.table.rows.slice(i); 
       const themes = {};
       rows.forEach(row => {
         const theme = row.c[1].v;
@@ -221,14 +221,14 @@
         }
       });
       const labels = Object.keys(themes).sort((a, b) => themes[b].count - themes[a].count);
-      const counts = labels.map(label => themes[label].count);
+      const counts = labels.map(label => themes[label].count+1);
       // console.log(themes)
       return { labels, counts, themes };
     }
 
-    function processPersonsData(data) {
+    function processPersonsData(data, i) {
       if (!data) return { labels: [], counts: [], persons: {} };
-      const rows = data.table.rows.slice(1); // Skip the header row
+      const rows = data.table.rows.slice(i);
       const persons = {};
       rows.forEach(row => {
         const person = row.c[1].v;
@@ -242,13 +242,13 @@
         }
       });
       const labels = Object.keys(persons).sort((a, b) => persons[b].count - persons[a].count);
-      const counts = labels.map(label => persons[label].count);
+      const counts = labels.map(label => persons[label].count+1);
       return { labels, counts, persons };
     }
 
-    function processOrgsData(data) {
+    function processOrgsData(data, i) {
       if (!data) return { labels: [], counts: [], orgs: {} };
-      const rows = data.table.rows.slice(1); // Skip the header row
+      const rows = data.table.rows.slice(i); 
       const orgs = {};
       rows.forEach(row => {
         const org = row.c[1].v;
@@ -262,13 +262,13 @@
         }
       });
       const labels = Object.keys(orgs).sort((a, b) => orgs[b].count - orgs[a].count);
-      const counts = labels.map(label => orgs[label].count);
+      const counts = labels.map(label => orgs[label].count+1);
       return { labels, counts, orgs };
     }
 
-    function processDocsData(data) {
+    function processDocsData(data, i) {
       if (!data) return [];
-      const rows = data.table.rows.slice(1); // Skip the header row
+      const rows = data.table.rows.slice(i); 
       return rows.map(row => ({
         id: row.c[4].v,
         image: row.c[5].v,
@@ -276,10 +276,10 @@
       })).sort((a, b) => b.id.localeCompare(a.id));
     }
 
-    function processLocationsData(data) {
+    function processLocationsData(data, i) {
       if (!data || !data.table || !data.table.rows) return [];
 
-      const rows = data.table.rows.slice(1); // Skip the header row
+      const rows = data.table.rows.slice(i); 
       const latlongMap = {};
 
       rows.forEach(row => {
@@ -314,6 +314,7 @@
     function filterDataByGkgIds(gkgIds) {
       // Helper function to filter rows based on GKG IDs
       function filterRowsByGkgIds(renderData) {
+        console.log("renderData before filtering", renderData);
         if (!renderData || !renderData.table || !renderData.table.rows) return renderData;
         return {
           ...renderData,
@@ -325,14 +326,14 @@
       };
       // Process each dataset using the helper function
       filteredData = {
-        tone: processToneData(filterRowsByGkgIds(initialSheetData.tone)),
-        themes: processThemesData(filterRowsByGkgIds(initialSheetData.themes)),
-        documents: processDocsData(filterRowsByGkgIds(initialSheetData.documents)),
-        persons: processPersonsData(filterRowsByGkgIds(initialSheetData.persons)),
-        locations: processLocationsData(filterRowsByGkgIds(initialSheetData.locations)),
-        orgs: processOrgsData(filterRowsByGkgIds(initialSheetData.orgs))
+        tone: processToneData(filterRowsByGkgIds(initialSheetData.tone),0),
+        themes: processThemesData(filterRowsByGkgIds(initialSheetData.themes),0),
+        documents: processDocsData(filterRowsByGkgIds(initialSheetData.documents),0),
+        persons: processPersonsData(filterRowsByGkgIds(initialSheetData.persons),0),
+        locations: processLocationsData(filterRowsByGkgIds(initialSheetData.locations),0),
+        orgs: processOrgsData(filterRowsByGkgIds(initialSheetData.orgs),0)
       };
-      // console.log(toneData.table)
+      console.log(filteredData.themes)
       return filteredData;
     }
 
@@ -647,12 +648,12 @@ async function initialize() {
     };
 
     initialRenderData = {
-      tone: processToneData(initialSheetData.tone),
-      themes: processThemesData(initialSheetData.themes),
-      documents: processDocsData(initialSheetData.documents),
-      persons: processPersonsData(initialSheetData.persons),
-      locations: processLocationsData(initialSheetData.locations),
-      orgs: processOrgsData(initialSheetData.orgs),
+      tone: processToneData(initialSheetData.tone, 1),
+      themes: processThemesData(initialSheetData.themes, 1),
+      documents: processDocsData(initialSheetData.documents, 1),
+      persons: processPersonsData(initialSheetData.persons, 1),
+      locations: processLocationsData(initialSheetData.locations, 1),
+      orgs: processOrgsData(initialSheetData.orgs, 1),
     };  
 
     // Call displayUpdatedTime directly after data is fetched
