@@ -606,21 +606,32 @@ async function initialize() {
   document.getElementById('loadingScreen').style.display = 'flex';
   // Show loading bar
   const loadingBar = document.getElementById('loadingBar');
-  loadingBar.style.width = '0%'; // Reset the loading bar
-  loadingBar.style.width = '50%';
-  await fetch(dataUrl, { mode: 'no-cors' });
-  console.log('Request made to:', dataUrl);
-  
-
   selections = {};
   try {
     
+    // Start loading data and progress bar animation
+    loadingBar.style.width = '0%';
+    let progress = 0;
+
+    // Define the increment for 50% over 15 seconds (increment every 100ms)
+    const increment = 70 / 150; // 70% over 150 intervals (each 100ms)
+    const intervalId = setInterval(() => {
+        if (progress < 70) {
+            progress += increment;
+            loadingBar.style.width = `${progress}%`;
+        }
+    }, 100); // increment every 100ms
+
     await fetch(dataUrl, { mode: 'no-cors' });
     console.log('Request made to:', dataUrl);
-    // Start loading data
-    loadingBar.style.width = '60%';
-    const toneData = await fetchSheetData(sheets.toneData);
+
+    // Ensure progress bar reaches 50% after promise resolution
+    clearInterval(intervalId);
     loadingBar.style.width = '70%';
+
+    // Continue with the rest of the data loading
+    const toneData = await fetchSheetData(sheets.toneData);
+    loadingBar.style.width = '75%';
     const themesData = await fetchSheetData(sheets.themesData);
     loadingBar.style.width = '80%';
     const documentsData = await fetchSheetData(sheets.documentData);
@@ -677,7 +688,7 @@ function displayUpdatedTime() {
   const month = parseInt(utcTimestamp.substring(4, 6), 10) - 1; // Month is 0-based in JS
   const day = parseInt(utcTimestamp.substring(6, 8), 10);
   const hour = parseInt(utcTimestamp.substring(8, 10), 10);
-  const minute = parseInt(utcTimestamp.substring(10, 12), 10);
+  const minute = parseInt(utcTimestamp.substring(10, 12), 10) - 15; // for some reason, date-times on the sheets are showing 15 minutes ahead of now
 
   // Create the Date object in UTC
   const utcDate = new Date(Date.UTC(year, month, day, hour, minute));
