@@ -174,45 +174,36 @@
     }
 
     function processToneData(data) {
-      // console.log("Tone Data:", data); // Debugging line
-      // console.log(data)
-      if (!data) return { toneBins: [], avgTone: 0};
-      const rows = data.table.rows.slice(1); // Skip the header row
-      const toneValues = rows.map(row => parseFloat(row.c[7].v)); // Adjust index if needed
-      const avgTone = toneValues.reduce((a, b) => a + b, 0) / toneValues.length;
+  if (!data) return { toneBins: [], avgTone: 0 };
+  
+  const rows = data.table.rows.slice(1); // Skip the header row
+  const toneValues = rows.map(row => parseFloat(row.c[7].v)); // Adjust index if needed
+  const avgTone = toneValues.reduce((a, b) => a + b, 0) / toneValues.length;
 
-      // Binning the tone values into 10 bins
-      const minTone = Math.min(...toneValues);
-      const maxTone = Math.max(...toneValues);
-      const binSize = (maxTone - minTone) / 10;
-      const toneBins = Array(10).fill(0);
-// come back and fill this in to get associated gkg ids like we did for themes
-      // rows.forEach(row => {
-      //   const tone = row.c[7].v;
-      //   const count = 0;
-      //   const gkgID = row.c[0].v;
-      //   if (themes[theme]) {
-      //     themes[theme].count += 1;
-      //     themes[theme].gkgIDs.push(gkgID);
-      //   } else {
-      //     themes[theme] = { count, gkgIDs: [gkgID] };
-      //   }
-      // });
+  // Binning the tone values into 10 bins
+  const minTone = Math.min(...toneValues);
+  const maxTone = Math.max(...toneValues);
+  const binSize = (maxTone - minTone) / 10;
+  
+  // Initialize toneBins as an array of objects
+  const toneBins = Array.from({ length: 10 }, () => ({ avgTone: 0, recordCount: 0 }));
 
-      toneValues.forEach(value => {
-        const binIndex = Math.min(Math.floor((value - minTone) / binSize), 9);
-        toneBins[binIndex] += 1;
-      });
+  toneValues.forEach(value => {
+    const binIndex = Math.min(Math.floor((value - minTone) / binSize), 9);
+    toneBins[binIndex].avgTone += value;
+    toneBins[binIndex].recordCount += 1;
+  });
 
-      // Create labels for tone ranges
-      const labels = Array.from({ length: 10 }, (_, i) => {
-        const rangeStart = (minTone + i * binSize).toFixed(2);
-        const rangeEnd = (minTone + (i + 1) * binSize).toFixed(2);
-        return `${rangeStart} - ${rangeEnd}`;
-      });
-
-      return { toneBins, avgTone};
+  // Calculate the average tone for each bin
+  toneBins.forEach(bin => {
+    if (bin.recordCount > 0) {
+      bin.avgTone /= bin.recordCount;
     }
+  });
+
+  return { toneBins, avgTone };
+}
+
 
     function processThemesData(data) {
       if (!data) return { labels: [], counts: [], themes: {} };
@@ -412,10 +403,10 @@ function handleChartClick(event, elements, chartData, chartType) {
         toneChart = new Chart(toneCtx, {
   type: 'bar',
   data: {
-    labels: Array(renderData.tone.toneBins.length).fill(''), // Empty labels
+    labels: renderData.tone.toneBins.map(bin => bin.avgTone),
     datasets: [{
       label: 'Tone Counts',
-      data: renderData.tone.toneBins,
+      data: renderData.tone.toneBins.map(bin => bin.recordCount),
       backgroundColor: 'rgba(75, 192, 192, 0.2)',
       borderColor: 'rgba(75, 192, 192, 1)',
       borderWidth: 1
@@ -426,18 +417,11 @@ function handleChartClick(event, elements, chartData, chartType) {
     maintainAspectRatio: false, // Allow the chart to fill its container
     scales: {
       x: {
+        type: 'linear',
+        position: 'bottom',
         title: {
           display: true,
           text: 'Tone Range'
-        },
-        ticks: {
-          display: true, // Show tick marks with labels
-          autoSkip: false, // Ensure every tick mark is shown
-          maxTicksLimit: renderData.tone.toneBins.length, // Limit the number of ticks to the number of bins
-          callback: function(value, index) {
-            // Return an empty string to hide the label, but keep the tick
-            return '';
-          },
         },
         grid: {
           drawTicks: true, // Draw tick marks
