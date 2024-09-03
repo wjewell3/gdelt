@@ -176,7 +176,7 @@
     function processToneData(data) {
       // console.log("Tone Data:", data); // Debugging line
       // console.log(data)
-      if (!data) return { toneBins: [], avgTone: 0, labels: [] };
+      if (!data) return { toneBins: [], avgTone: 0};
       const rows = data.table.rows.slice(1); // Skip the header row
       const toneValues = rows.map(row => parseFloat(row.c[7].v)); // Adjust index if needed
       const avgTone = toneValues.reduce((a, b) => a + b, 0) / toneValues.length;
@@ -211,7 +211,7 @@
         return `${rangeStart} - ${rangeEnd}`;
       });
 
-      return { toneBins, avgTone, labels };
+      return { toneBins, avgTone};
     }
 
     function processThemesData(data) {
@@ -410,44 +410,55 @@ function handleChartClick(event, elements, chartData, chartType) {
         document.getElementById('toneHistogram').style.display = 'none';
       } else {
         toneChart = new Chart(toneCtx, {
-          type: 'bar',
-          data: {
-            labels: renderData.tone.labels,
-            datasets: [{
-              label: 'Tone Count',
-              data: renderData.tone.toneBins,
-              backgroundColor: 'rgba(75, 192, 192, 0.2)',
-              borderColor: 'rgba(75, 192, 192, 1)',
-              borderWidth: 1
-            }]
+  type: 'bar',
+  data: {
+    labels: Array(renderData.tone.toneBins.length).fill(''), // Empty labels
+    datasets: [{
+      label: 'Tone Counts',
+      data: renderData.tone.toneBins,
+      backgroundColor: 'rgba(75, 192, 192, 0.2)',
+      borderColor: 'rgba(75, 192, 192, 1)',
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false, // Allow the chart to fill its container
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: 'Tone Range'
+        },
+        ticks: {
+          display: true, // Show tick marks with labels
+          autoSkip: false, // Ensure every tick mark is shown
+          maxTicksLimit: renderData.tone.toneBins.length, // Limit the number of ticks to the number of bins
+          callback: function(value, index) {
+            // Return an empty string to hide the label, but keep the tick
+            return '';
           },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false, // Allow the chart to fill its container
-            scales: {
-              x: {
-                title: {
-                  display: true,
-                  text: 'Tone Range'
-                },
-                ticks: {
-                  callback: function(value, index) {
-                    return renderData.tone.labels[index];
-                  }
-                }
-              },
-              y: {
-                beginAtZero: true,
-                title: {
-                  display: true,
-                  text: 'Count'
-                }
-              }
-            },
-            // onClick: (event, elements) => handleChartClick(event, elements, data.tone.toneBins, 'tone')
-
-          }
-        });
+        },
+        grid: {
+          drawTicks: true, // Draw tick marks
+          color: 'rgba(0, 0, 0, 0.1)',
+        }
+      },
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Count'
+        },
+      }
+    },
+    plugins: {
+      legend: {
+        display: false, // Hide legend if not needed
+      }
+    }
+  }
+});
         document.getElementById('avgOverallTone').textContent = `Average Overall Tone: ${renderData.tone.avgTone.toFixed(2)}`;
       }
 
@@ -613,7 +624,7 @@ async function initialize() {
     loadingBar.style.width = '0%';
     let progress = 0;
 
-    // Define the increment for 50% over 15 seconds (increment every 100ms)
+    // Define the increment for 70% over 15 seconds (increment every 100ms)
     const increment = 70 / 150; // 70% over 150 intervals (each 100ms)
     const intervalId = setInterval(() => {
         if (progress < 70) {
@@ -622,7 +633,7 @@ async function initialize() {
         }
     }, 100); // increment every 100ms
 
-    await fetch(dataUrl, { mode: 'no-cors' });
+    // await fetch(dataUrl, { mode: 'no-cors' });
     console.log('Request made to:', dataUrl);
 
     // Ensure progress bar reaches 50% after promise resolution
