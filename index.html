@@ -175,21 +175,32 @@
 
     function processToneData(data, i) {
   if (!data) return { toneBins: [], avgTone: 0 };
-  
+
   const rows = data.table.rows.slice(i); // Skip the header row
+  console.log("tone rows", rows);
   const toneValues = rows.map(row => parseFloat(row.c[7].v)); // Adjust index if needed
+  console.log("tone values", toneValues);
   const avgTone = toneValues.reduce((a, b) => a + b, 0) / toneValues.length;
+  console.log("avg Tone", avgTone);
 
   // Binning the tone values into 10 bins
   const minTone = Math.min(...toneValues);
   const maxTone = Math.max(...toneValues);
   const binSize = (maxTone - minTone) / 10;
-  
+  console.log("binSize", binSize);
+
   // Initialize toneBins as an array of objects
   const toneBins = Array.from({ length: 10 }, () => ({ avgTone: 0, recordCount: 0 }));
+  console.log("toneBins", toneBins);
 
   toneValues.forEach(value => {
-    const binIndex = Math.min(Math.floor((value - minTone) / binSize), 9);
+    let binIndex;
+    if (binSize === 0) {
+      binIndex = 0; // All values go to the first bin when minTone === maxTone
+    } else {
+      binIndex = Math.min(Math.floor((value - minTone) / binSize), 9);
+    }
+    console.log("binIndex", binIndex);
     toneBins[binIndex].avgTone += value;
     toneBins[binIndex].recordCount += 1;
   });
@@ -314,7 +325,7 @@
     function filterDataByGkgIds(gkgIds) {
       // Helper function to filter rows based on GKG IDs
       function filterRowsByGkgIds(renderData) {
-        console.log("renderData before filtering", renderData);
+        // console.log("renderData before filtering", renderData);
         if (!renderData || !renderData.table || !renderData.table.rows) return renderData;
         return {
           ...renderData,
@@ -333,7 +344,7 @@
         locations: processLocationsData(filterRowsByGkgIds(initialSheetData.locations),0),
         orgs: processOrgsData(filterRowsByGkgIds(initialSheetData.orgs),0)
       };
-      console.log(filteredData.themes)
+      console.log("filteredData.tone", filteredData.tone)
       return filteredData;
     }
 
