@@ -629,7 +629,7 @@ async function initialize() {
         }
     }, 100); // increment every 100ms
 
-    // await fetch(dataUrl, { mode: 'no-cors' });
+    await fetch(dataUrl, { mode: 'no-cors' });
     console.log('Request made to:', dataUrl);
 
     // Ensure progress bar reaches 50% after promise resolution
