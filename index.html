@@ -100,10 +100,10 @@
 
   <div class="chart-row">
     <div class="chart-container">
-      <h2>Tone Counts</h2>
+      <h2> <div id="avgOverallTone"></div></h2>
       <div class="chart-wrapper">
         <canvas id="toneHistogram"></canvas>
-        <div id="avgOverallTone"></div>
+       
       </div>
     </div>
     <div class="chart-container">
@@ -455,7 +455,7 @@ function handleChartClick(event, elements, chartData, chartType) {
     }
   }
 });
-        document.getElementById('avgOverallTone').textContent = `Average Overall Tone: ${renderData.tone.avgTone.toFixed(2)}`;
+        document.getElementById('avgOverallTone').textContent = `Tone Distribution, Average: ${renderData.tone.avgTone.toFixed(2)}`;
       }
 
   const themeCtx = document.getElementById('themeBarChart').getContext('2d');

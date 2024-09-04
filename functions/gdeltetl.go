@@ -320,9 +320,13 @@ func processAndFilterData(data [][]string) ([][]string, [][]string, [][]string, 
 	// Process rows and split into respective slices
 	for _, row := range data[1:] { // Skip header row
 		tones := strings.Split(row[15], ",")
-		if containsNull([]string{ // if gdeltMain has any null values, skip row
-			row[0], row[1], row[2], row[3], row[4], row[18], row[15], 
-			tones[0], tones[1], tones[2], tones[3], tones[4], tones[5], tones[6]}) {
+		if containsNull([]string{ 
+			row[0], row[1], row[2], row[3], row[4], row[18], row[15], // if gdeltMain has any null values, skip row
+			tones[0], tones[1], tones[2], tones[3], tones[4], tones[5], tones[6], // if gdeltMain has any null values, skip row
+			row[8], // if themes has any null values, skip row
+			row[10], // if locations has any null values, skip row
+			row[12], // if persons has any null values, skip row
+			row[14]}) {// if orgs has any null values, skip row
 			continue // Skip rows with null values
 		}
 		// Process the main table
